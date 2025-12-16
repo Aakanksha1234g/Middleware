@@ -12,7 +12,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: 'http://localhost:5173',                             
   credentials: true
 }));
 
@@ -22,23 +22,30 @@ redis.connect().catch(console.error);
 
 // Rate limiting
 const limiter = rateLimit({ windowMs: 60 * 1000, max: 10000 });
-app.use('/auth', limiter);
+app.use('/', limiter);
 
 // 🔐 FIXED: Get these from Keycloak Admin Console → Clients → LorvenAI-app → Credentials
 const config = {
   KEYCLOAK_URL: 'http://localhost:8081',
   KEYCLOAK_REALM: 'LorvenAI-realm',
   CLIENT_ID: 'LorvenAI-app',
-  CLIENT_SECRET: 'YOUR_ACTUAL_CLIENT_SECRET_HERE', // ← CHANGE THIS
+  CLIENT_SECRET: 'PVFHwZaAQpC1avgo9YjRdaYLgOIC5Fuw', // ← CHANGE THIS
   JWT_SECRET: 'your-super-secret-jwt-key-change-in-prod',
-  ADMIN_TOKEN: 'YOUR_KEYCLOAK_ADMIN_TOKEN' // Get via /realms/master/protocol/openid-connect/token
+  ADMIN_TOKEN: 'eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJEZ2xfSWRLX0NuYmdtMU4tVF9mc1BESU5fMDExaXFKMTF5N0dkcGtTT3VzIn0.eyJleHAiOjE3NjU4NjMwMTgsImlhdCI6MTc2NTg2Mjk1OCwianRpIjoib25sdHJvOmQ1NDA0MmM3LWFlNmEtNTNkMy1kYjY1LWNkNGU5Mzk0ZTc4OCIsImlzcyI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA4MS9yZWFsbXMvbWFzdGVyIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoiYWRtaW4tY2xpIiwic2lkIjoiODBlNjkwMjQtMTUxMy04YmU1LTI5ZjYtNDlmMDVhMzZmMjkxIiwic2NvcGUiOiJlbWFpbCBwcm9maWxlIn0.P7e-_zqKwqbQ0PVgv7q20ZmaUWzb3u7Xlkr6lkDbGG6hGqmBWVcaKfXHnVANORPiGnNGCnRdlnD8IEx-SJgKWK2WWW_L0HPupK9PU1LmYXbSnTA4becdvrHCAYKpfFhcfWvrhKeaxAOqwFWS6uoIO50y9LrGFrxfQqf5VD97gscdZhZaU9hOYgy_1e2XCsdW84xeoDsvvGgy8BeyFQWSLQQ8ovnol1m4-DwCMdD4AAuOveiUw0L8E30FkdQ-q3Jfvsmf-BDgUtNHRRZzCfNLNKvTGVAZ56rRDc5EFbAE1L4Eq-WygcRgmWuvsNS0eQg0m11lUNuG2Hy2uQInLnxhhg","expires_in":60,"refresh_expires_in":1800,"refresh_token":"eyJhbGciOiJIUzUxMiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJmY2QyODVjMC02YjIxLTQ4MmEtYTA1OC1lZDcwN2ZjNDU5NWIifQ.eyJleHAiOjE3NjU4NjQ3NTgsImlhdCI6MTc2NTg2Mjk1OCwianRpIjoiNzEwODlhYmEtYjNlMC03Y2YwLWEyZTUtNWFiYTI2NjY1MDYwIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo4MDgxL3JlYWxtcy9tYXN0ZXIiLCJhdWQiOiJodHRwOi8vbG9jYWxob3N0OjgwODEvcmVhbG1zL21hc3RlciIsInR5cCI6IlJlZnJlc2giLCJhenAiOiJhZG1pbi1jbGkiLCJzaWQiOiI4MGU2OTAyNC0xNTEzLThiZTUtMjlmNi00OWYwNWEzNmYyOTEiLCJzY29wZSI6ImVtYWlsIGFjciB3ZWItb3JpZ2lucyByb2xlcyBwcm9maWxlIGJhc2ljIn0.GVtAMFRm6hmH_hWzO6d13rHJoUvlxG4pzhsl40v4s8E1RO5FFRvdq2oeI9VN9dsQrBO58X1CZnlsL_HH0Csivw' // Get via /realms/master/protocol/openid-connect/token
 };
 
 // MAIN LOGIN - PERFECT AS-IS ✅
-app.post('/auth/login', limiter, async (req, res) => {
+app.post('/login', limiter, async (req, res) => {
   try {
+    console.log("/login api called")
     const { user_email, user_password } = req.body;
     
+    //Check if the group name exists with that email id part
+    console.log(`user_email: ${user_email}, user pass: ${user_password}`)
+    console.log(`email type: ${typeof user_email}`)
+    const organization = user_email.split('@')[1].split('.')[0];   
+    console.log(`Checking if the group name ${organization} exists...`)
+
     const tokens = await axios.post(
       `${config.KEYCLOAK_URL}/realms/${config.KEYCLOAK_REALM}/protocol/openid-connect/token`,
       new URLSearchParams({
@@ -51,10 +58,10 @@ app.post('/auth/login', limiter, async (req, res) => {
       }),
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     );
-
+    console.log(`tokens are : ${tokens}`);
     const userId = tokens.data.sub;
     const cacheKey = `perms:${userId}`;
-
+    
     let permissions = await redis.get(cacheKey);
     if (!permissions) {
       const userInfo = await axios.get(
@@ -92,9 +99,13 @@ app.post('/auth/login', limiter, async (req, res) => {
 });
 
 // ✅ NEW: Complete Signup Implementation
-app.post('/auth/signup', limiter, async (req, res) => {
+app.post('/signup', limiter, async (req, res) => {
   try {
-    const { user_email, user_password, firstName, lastName } = req.body;
+    const { user_email, user_password} = req.body;
+
+    //Check if the group name exists with that email id part
+    console.log(`user_email: ${user_email}, user pass: ${user_password}`)
+    console.log("Checking if the group name with ")
 
     // Step 1: Create user in Keycloak
     const createUser = await axios.post(
@@ -104,8 +115,6 @@ app.post('/auth/signup', limiter, async (req, res) => {
         email: user_email,
         enabled: true,
         emailVerified: true,
-        firstName,
-        lastName,
         credentials: [{
           type: 'password',
           value: user_password,
@@ -165,7 +174,7 @@ app.post('/auth/signup', limiter, async (req, res) => {
 });
 
 // ✅ NEW: Token refresh endpoint
-app.post('/auth/refresh', async (req, res) => {
+app.post('/refresh', async (req, res) => {
   try {
     const { refresh_token } = req.body;
     const tokens = await axios.post(
