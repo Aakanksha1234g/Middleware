@@ -10,6 +10,7 @@ const axios = require('axios');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
+const { getAdminToken } = require('./src/admin_token');
 
 const app = express();
 
@@ -96,112 +97,76 @@ app.post('/signup',limiter,async (req, res) => {
     console.log(`email type: ${typeof user_email}`)
     console.log(`Checking if user_email ${user_email} exists or not`);
     const userExists = await checkUserExists(user_email);
-    console.log(`user exists: ${userExists}`)
-    if (userExists == '') {
-          console.log(`User ${user_email} doesn't exist.Creating invitation.`)
-          await inviteUser(user_email, user_password);
-    }  
-    else {
-      console.log(`User ${user_email} already exists`);
+    if (!userExists){
+      
+      const adminToken = await getAdminToken();
+
+      //Create user as Pending(email not verified)
+      console.log('Creating user..');
+      const createResp = await axios.post(
+        `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/users`,
+        {
+          username: user_email, email: user_email,enabled:true,
+          emailVerified:false, credentials: [{type: 'password',value: user_password,temporary: false
+          }],
+          requiredActions: ['VERIFY_EMAIL']
+        },
+        {headers: { Authorization: `Bearer ${adminToken}`,'Content-Type':'application/json'}}
+      );
+      console.log(`User ${user_email} created successfully.`);
+      //Get userId fro Location header
+      const location = createResp.headers.location;   //../users/{id}
+      const userId = location.substring(location.lastIndexOf('/') + 1);     
+
+      //Create email with verify-email link
+      await axios.put( `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/users/${userId}/execute-actions-email`,
+        ['VERIFY_EMAIL'],         //required actions
+        {
+          params: {
+            client_id: config.CLIENT_ID,
+            redirect_uri: 'http://localhost:5173/login'
+          },
+          headers: {
+            Authorization: `Bearer ${adminToken}`, 'Content-Type':'application/json'}
+        }
+      );
+      console.log(`Verification email sent to ${user_email}`);
+      return res.json({data:{details: 'Confirmation email sent. Please click the link in your inbox.'}});
+  } 
+  else {
+    console.log(`User with email ${user_email} already exists.`);
+      return res.status(400).json({data: { detail: 'User with this email already exists' } });
     }
-  }catch (error) {
+}catch (error) {
     console.error('Signup failed:', error.response?.data || error.message);
-    res.status(400).json({ 
-      data: { detail: error.response?.data?.errorMessage || 'Signup failed' } 
+    res.status(400).json({  data: { detail: error.response?.data?.errorMessage || 'Signup failed' } 
     });
   }
 });
 
+app.get('/accept-invite/:token',async (req,res) => {
+  try {
+    const {token} = req.params;
+    const data = jwt.verify(token, config.JWT_SECRET);
 
-// Signup Implementation
-// app.post('/signup', limiter, async (req, res) => {
-//   try {
-//     const { user_email, user_password} = req.body;
-    
-//     //Check if the group name exists with that email id part
-//     console.log(`user_email: ${user_email}, user pass: ${user_password}`)
-//     console.log(`email type: ${typeof user_email}`)
-
-//     console.log(`Checking if user_email ${user_email} exists or not`);
-//     const userExists = await checkUserExists(user_email);
-//     if (!userExists) {
-//       console.log(`User ${user_email} doesn't exists. Sending link to the admin user.`);
-//       return res.status(404).json({data: {detail: `User email ${user_email} not found.`}})
-//     }
-//     console.log(`User ${user_email} exists`);
-
-//     const organization = user_email.split('@')[1].split('.')[0];   
-//     console.log(`Checking if the group name ${organization} exists...`)
-//     const groupExists = await checkGroupExists(organization);
-//     if (!groupExists) {
-//       return res.status(400).json({data: {detail: ` Group ${organization} not found`}});
-//     }
-
-//     // Step 1: Create user in Keycloak
-//     const createUser = await axios.post(
-//       `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/users`,
-//       {
-//         username: user_email,
-//         email: user_email,
-//         enabled: true,
-//         emailVerified: true,
-//         credentials: [{
-//           type: 'password',
-//           value: user_password,
-//           temporary: false
-//         }],
-//         realmRoles: ['user'] // Default role - customize in Keycloak
-//       },
-//       {
-//         headers: {
-//           'Authorization': `Bearer ${config.ADMIN_TOKEN}`,
-//           'Content-Type': 'application/json'
-//         }
-//       }
-//     );
-
-//     if (createUser.status === 201) {
-//       // Step 2: Auto-login new user
-//       const loginTokens = await axios.post(
-//         `${config.KEYCLOAK_URL}/realms/${config.KEYCLOAK_REALM}/protocol/openid-connect/token`,
-//         new URLSearchParams({
-//           grant_type: 'password',
-//           client_id: config.CLIENT_ID,
-//           client_secret: config.CLIENT_SECRET,
-//           username: user_email,
-//           password: user_password,
-//           scope: 'openid email profile'
-//         }),
-//         { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
-//       );
-
-//       const userId = loginTokens.data.sub;
-//       const permissions = mapRolesToScreens(['user']); // Default user permissions
-//       const enrichedToken = jwt.sign({
-//         sub: userId,
-//         permissions,
-//         modules: Object.keys(permissions)
-//       }, JWT_SECRET, { expiresIn: '15m' });
-
-//       res.json({
-//         data: {
-//           response: {
-//             access_token: enrichedToken,
-//             refresh_token: loginTokens.data.refresh_token,
-//             permissions,
-//             modules: Object.keys(permissions),
-//             message: 'Account created successfully'
-//           }
-//         }
-//       });
-//     }
-//   } catch (error) {
-//     console.error('Signup failed:', error.response?.data || error.message);
-//     res.status(400).json({ 
-//       data: { detail: error.response?.data?.errorMessage || 'Signup failed' } 
-//     });
-//   }
-// });
+    //Create user in Keycloak
+    const adminToken = await getAdminToken();
+    await axios.post(`${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/users`, {
+      username : data.email,
+      email: data.email,
+      enabled:true,
+      emailVerified:true,
+      credentials: [{
+        type: 'password',
+        value:data.password,
+        temporary:false
+      }]
+    },{headers: {Authorization: `Bearer ${adminToken}`,'Content-Type':'application/json'}});
+     res.redirect(`http://localhost:5173/dashboard?success=true`);
+  }catch(error){
+    res.send('<h2>Invalid link. Contact support.</h2>')
+  }
+});
 
 // ✅ NEW: Token refresh endpoint
 app.post('/refresh', async (req, res) => {

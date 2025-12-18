@@ -1,78 +1,64 @@
-
-// ONE FUNCTION - Add this to your existing code
-async function sendSignupInvitation({ user_email, user_password }) {
+app.post('/signup', limiter, async (req, res) => {
   try {
-    // 1. Check user doesn't exist
-    const userExists = await checkUserExists(user_email);
-    if (userExists) throw new Error('User already exists');
+    const { user_email, user_password } = req.body;
 
-    // 2. Create secure token with credentials
-    const organization = user_email.split('@')[1].split('.')[0];
-    const tokenData = { email: user_email, password: user_password, org: organization, exp: Date.now() + 24*60*60*1000 };
-    const token = jwt.sign(tokenData, config.JWT_SECRET);
-    const magicLink = `http://localhost:3001/accept-invite/${token}`;
+    // 1) Block if already existing
+    const exists = await checkUserExists(user_email);
+    if (exists) {
+      return res.status(400).json({ data: { detail: 'Account already exists. Please log in.' } });
+    }
 
-    // 3. Send email
-    await transporter.sendMail({
-      to: user_email,
-      subject: 'Complete Your LorvenAI Signup',
-      html: `<h2>Your Account is Ready!</h2><p>Click <a href="${magicLink}">here</a> to activate instantly.</p>`
+    const adminToken = await getAdminToken();
+
+    // 2) Create user as PENDING (email not verified)
+    const createResp = await axios.post(
+      `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/users`,
+      {
+        username: user_email,
+        email: user_email,
+        enabled: true,              // account exists but you will check emailVerified later
+        emailVerified: false,       // key flag
+        credentials: [{
+          type: 'password',
+          value: user_password,
+          temporary: false
+        }],
+        requiredActions: ['VERIFY_EMAIL']  // verify email is required
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${adminToken}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    // 3) Get userId from Location header
+    const location = createResp.headers.location;       // .../users/{id}
+    const userId = location.substring(location.lastIndexOf('/') + 1);
+
+    // 4) Trigger Keycloak email with verify-email link
+    await axios.put(
+      `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/users/${userId}/execute-actions-email`,
+      ['VERIFY_EMAIL'],  // required actions
+      {
+        params: {
+          client_id: config.CLIENT_ID,
+          redirect_uri: 'http://localhost:5173/login'
+        },
+        headers: {
+          Authorization: `Bearer ${adminToken}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    return res.json({
+      data: { detail: 'Confirmation email sent. Please click the link in your inbox.' }
     });
 
-    console.log(`✅ Invitation sent to ${user_email}`);
-    return true;
   } catch (error) {
-    console.error('Invitation failed:', error.message);
-    throw error;
-  }
-}
-
-
-// ONE FUNCTION - Add this to your existing code
-async function sendSignupInvitation({ user_email, user_password }) {
-  try {
-    // 1. Check user doesn't exist
-    const userExists = await checkUserExists(user_email);
-    if (userExists) throw new Error('User already exists');
-
-    // 2. Create secure token with credentials
-    const organization = user_email.split('@')[1].split('.')[0];
-    const tokenData = { email: user_email, password: user_password, org: organization, exp: Date.now() + 24*60*60*1000 };
-    const token = jwt.sign(tokenData, config.JWT_SECRET);
-    const magicLink = `http://localhost:3001/accept-invite/${token}`;
-
-    // 3. Send email
-    await transporter.sendMail({
-      to: user_email,
-      subject: 'Complete Your LorvenAI Signup',
-      html: `<h2>Your Account is Ready!</h2><p>Click <a href="${magicLink}">here</a> to activate instantly.</p>`
-    });
-
-    console.log(`✅ Invitation sent to ${user_email}`);
-    return true;
-  } catch (error) {
-    console.error('Invitation failed:', error.message);
-    throw error;
-  }
-}
-
-app.get('/accept-invite/:token', async (req, res) => {
-  try {
-    const { token } = req.params;
-    const data = jwt.verify(token, config.JWT_SECRET);
-    
-    // Create user in Keycloak
-    const adminToken = await getAdminToken(); // Your existing function
-    await axios.post(`${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/users`, {
-      username: data.email,
-      email: data.email,
-      enabled: true,
-      emailVerified: true,
-      credentials: [{ type: 'password', value: data.password, temporary: false }]
-    }, { headers: { Authorization: `Bearer ${adminToken}`, 'Content-Type': 'application/json' } });
-    
-    res.redirect(`http://localhost:5173/dashboard?success=true`);
-  } catch (error) {
-    res.send('<h2>Invalid link. Contact support.</h2>');
+    console.error('Signup failed:', error.response?.data || error.message);
+    return res.status(400).json({ data: { detail: 'Signup failed' } });
   }
 });

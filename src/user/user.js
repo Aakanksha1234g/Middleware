@@ -19,7 +19,7 @@ async function checkUserExists(email) {
             {headers: {'Authorization': `Bearer ${adminToken}`}}
         );
         console.log("searched user:", searchUser.data);
-        return searchUser.data;
+        return searchUser.data.length > 0;
     } catch(error) {
       if (error.response?.status === 404) return false;
       console.error('User check failed:',error.message);

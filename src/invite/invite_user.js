@@ -17,7 +17,7 @@ async function inviteUser(user_email,user_password) {
 
         //Send email
         await transporter.sendMail({
-            to: user_email,
+            to: user_email,              //recipient email
             subject: 'Complete Your LorvenAI Signup',
             html : `<h2>Create your account!</h2>
             <p> Click on the link below to complete account creation:</p>
