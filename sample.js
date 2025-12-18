@@ -56,3 +56,23 @@ async function sendSignupInvitation({ user_email, user_password }) {
   }
 }
 
+app.get('/accept-invite/:token', async (req, res) => {
+  try {
+    const { token } = req.params;
+    const data = jwt.verify(token, config.JWT_SECRET);
+    
+    // Create user in Keycloak
+    const adminToken = await getAdminToken(); // Your existing function
+    await axios.post(`${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/users`, {
+      username: data.email,
+      email: data.email,
+      enabled: true,
+      emailVerified: true,
+      credentials: [{ type: 'password', value: data.password, temporary: false }]
+    }, { headers: { Authorization: `Bearer ${adminToken}`, 'Content-Type': 'application/json' } });
+    
+    res.redirect(`http://localhost:5173/dashboard?success=true`);
+  } catch (error) {
+    res.send('<h2>Invalid link. Contact support.</h2>');
+  }
+});

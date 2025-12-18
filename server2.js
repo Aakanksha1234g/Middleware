@@ -68,7 +68,7 @@ app.post('/login', limiter, async (req, res) => {
       sub: userId,
       permissions,
       modules: Object.keys(permissions)
-    }, JWT_SECRET, { expiresIn: '15m' });
+    }, config.JWT_SECRET, { expiresIn: '15m' });
 
     res.json({
       data: {
@@ -111,6 +111,7 @@ app.post('/signup',limiter,async (req, res) => {
     });
   }
 });
+
 
 // Signup Implementation
 // app.post('/signup', limiter, async (req, res) => {
