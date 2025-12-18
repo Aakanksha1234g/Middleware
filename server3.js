@@ -1,5 +1,5 @@
 // server.js
-
+//production ready file
 // ============== IMPORTS ==============
 const express = require('express');              // Web server
 const Redis = require('redis');                  // Permissions cache
@@ -24,7 +24,8 @@ const config = {
 // Precomputed URLs
 const realmBase = `${config.KEYCLOAK_URL}/realms/${config.REALM}`;
 const tokenEndpoint = `${realmBase}/protocol/openid-connect/token`;
-const jwksUrl = `${realmBase}/protocol/openid-connect/certs`;
+const jwksUrl = `${realmBase}/protocol/openid-connect/certs`;     
+
 
 // JOSE JWKS client — validates Keycloak signatures
 const jwks = createRemoteJWKSet(new URL(jwksUrl));
@@ -65,10 +66,12 @@ app.use(['/login', '/signup'], authLimiter);
 
 // Verify Keycloak access token (signature + iss + aud + exp)
 async function verifyAccessToken(accessToken) {
-  const { payload } = await jwtVerify(accessToken, jwks, {
+  console.log(`jwks : ${jwks}`)
+  const { payload } = await jwtVerify(accessToken, jwks, {  //jwtverify function from jose verifies the jwt         
     issuer: realmBase,
     audience: config.CLIENT_ID,
   });
+  console.log(`payload : ${payload}`);
   return payload; // trusted claims
 }
 
@@ -116,6 +119,7 @@ function mapRolesToScreens(roles) {
 // Frontend should POST to http://localhost:3001/login
 app.post('/login', async (req, res) => {
   try {
+    console.log("/login endpoint called...")
     const { user_email, user_password } = req.body;
     if (!user_email || !user_password) {
       return res
@@ -136,11 +140,14 @@ app.post('/login', async (req, res) => {
       }),
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     );
-
+    console.log(`token response : ${tokenResp}`)
     const accessToken = tokenResp.data.access_token;
+    console.log(`access token ${accessToken}`);
     const refreshToken = tokenResp.data.refresh_token;
+    console.log(`\nrefresh token ${refreshToken}`);
 
     // 2) Verify token and get payload (signature + claims)
+    console.log(`verifying the access token...`)
     const payload = await verifyAccessToken(accessToken);
     const userId = payload.sub;
     const cacheKey = `perms:${userId}`;
