@@ -12,6 +12,43 @@
 5. dfgfdg
 6. 
 
+### Password grant response of token endpoint:
+
+
+```
+{
+"access_token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+"expires_in":300,
+"refresh_expires_in":1800,
+"refresh_token":"...",
+"token_type":"Bearer",
+"not-before-policy":0,
+"session_state":"...",
+"scope":"email profile"
+}
+```
+
+
+*At brevo->smtp & api
+I added new sender with
+From Name : Lorvenai
+From Email : aakanksha@thequantum.ai*
+
+*Your SMTP Settings
+SMTP Server : smtp-relay.brevo.com
+Port : 587
+Login : 9e546b001@smtp-brevo.com*
+
+*I added the fields in keycloak email tab
+from : aakanksha@thequantum.ai
+host : smtp-relay.brevo.com
+port : 587
+encryption : ✔enabled ssl
+authentication : enabled
+username : 9e546b001@smtp-brevo.com
+authentication type : ✔ password
+password : bskKrlIu5XeM93j
+allow utf-8 : ✔ enabled*
 
 ## Keycloak Email tab
 

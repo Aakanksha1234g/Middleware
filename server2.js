@@ -11,6 +11,8 @@ const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const { getAdminToken } = require('./src/admin_token');
+const { checkGroupExists } = require('./src/group/group_check');
+const {create_group} = require('./src/group/create_group');
 
 const app = express();
 
@@ -48,16 +50,22 @@ app.post('/login', limiter, async (req, res) => {
       }),
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     );
-    console.log(`tokens are : ${tokens}`);
-    const userId = tokens.data.sub;
+    console.log(`tokens expires in  : ${tokens.data.expires_in}`);
+
+    const decodedToken = jwt.decode(tokens.data.access_token);
+    console.log("decoded token:", decodedToken);
+    const userId = decodedToken.sub;
+    console.log(`userId: ${userId}`);
     const cacheKey = `perms:${userId}`;
     
     let permissions = await redis.get(cacheKey);
+    console.log(`permissions from cache: ${permissions}`);
     if (!permissions) {
       const userInfo = await axios.get(
         `${config.KEYCLOAK_URL}/realms/${config.KEYCLOAK_REALM}/protocol/openid-connect/userinfo`,
         { headers: { Authorization: `Bearer ${tokens.data.access_token}` } }
       );
+      console.log("user permissions: ",permissions);
       
       permissions = mapRolesToScreens(userInfo.data.realm_access?.roles || []);
       await redis.setEx(cacheKey, 900, JSON.stringify(permissions));
@@ -131,6 +139,21 @@ app.post('/signup',limiter,async (req, res) => {
         }
       );
       console.log(`Verification email sent to ${user_email}`);
+      const organization = user_email.split('@')[1].split('.')[0];
+      console.log(`Checking if group ${organization} exists.`);
+      const organizationExists = await checkGroupExists(organization);
+      console.log("organization exists:",organizationExists);
+      if(!organizationExists){
+        console.log(`Group ${organization} doesn't exist. Creating it...`);
+        const groupCreateResp = await create_group(organization);
+        console.log('Group created:',groupCreateResp);
+      }
+      console.log(`Creating client for group ${organization}`);
+      const clientCreationResponse = await axios.post( `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/clients`,
+        { clientId : organization,
+          
+        }
+      )
       return res.json({data:{details: 'Confirmation email sent. Please click the link in your inbox.'}});
   } 
   else {
