@@ -1,8 +1,7 @@
 const config = require('./src/config');
-const {inviteUser} = require('./src/invite/invite_user')
 console.log(`config: ${config}`);
 const {checkUserExists} = require('./src/user/user'); 
-
+const {setupClientAndRoles} = require('./src/client/create_client');
 const express = require('express');
 const Redis = require('redis');
 const jwt = require('jsonwebtoken');
@@ -79,6 +78,8 @@ app.post('/login', limiter, async (req, res) => {
       modules: Object.keys(permissions)
     }, config.JWT_SECRET, { expiresIn: '15m' });
 
+    //check what is in the access token
+    console.log("enriched token:",enrichedToken);
     res.json({
       data: {
         response: {
@@ -149,12 +150,12 @@ app.post('/signup',limiter,async (req, res) => {
         console.log('Group created:',groupCreateResp);
       }
       console.log(`Creating client for group ${organization}`);
-      const clientCreationResponse = await axios.post( `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/clients`,
-        { clientId : organization,
-          
-        }
-      )
-      return res.json({data:{details: 'Confirmation email sent. Please click the link in your inbox.'}});
+      const clientId = `LorvenAI-app-${organization}`;
+      const clientUuid = await setupClientAndRoles(clientId);
+      if (clientUuid) {
+        console.log(`Orgnaization ${organization} has been created with client ${clientUuid}`);
+      }
+      return res.json({data:{details: 'Confirmation email sent. Please click the link in your inbox.',user_id:userId }});
   } 
   else {
     console.log(`User with email ${user_email} already exists.`);
@@ -167,6 +168,26 @@ app.post('/signup',limiter,async (req, res) => {
   }
 });
 
+app.post('/intospect', limiter, async (req, res) => {
+  try {
+    console.log("/intospect api called");
+    const {token} = req.body;
+    const introspectResp = await axios.post(
+      `${config.KEYCLOAK_URL}/realms/${config.KEYCLOAK_REALM}/protocol/openid-connect/token/introspect`,
+      new URLSearchParams({
+        token,
+        client_id: config.CLIENT_ID,
+        client_secret: config.CLIENT_SECRET
+      }),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+    );
+    res.json({data: { response: introspectResp.data } });
+  }catch(error){
+    console.error('Introspect failed:', error.response?.data || error.message);
+    res.status(400).json({ data: { detail: 'Introspect failed' } });
+  }
+}
+);
 app.get('/accept-invite/:token',async (req,res) => {
   try {
     const {token} = req.params;
@@ -239,5 +260,5 @@ function mapRolesToScreens(roles) {
 
 app.listen(3001, () => {
   console.log('🚀 Auth Middleware running on http://localhost:3001');
-  console.log('✅ Frontend (5173) → Middleware (3001) → Keycloak (8081)');
+  console.log('✅ Frontend (5173) → Backend (8000)');
 });
