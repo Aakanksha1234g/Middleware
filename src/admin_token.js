@@ -13,7 +13,7 @@ async function getAdminToken() {
             params,
             {headers: { 'Content-Type': 'application/x-www-form-urlencoded' }}
         );
-        console.log(`response data : ${response.data}`);
+        console.log(`response data : ${response.status}`);
         return response.data.access_token;
     } catch(error) {
         console.error("Failed to fetch admin token:", error.message);

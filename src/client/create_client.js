@@ -31,8 +31,8 @@ async function create_client(client_id,organization) {
             'Content-Type':'application/json'},
         }
         );
-        console.log('Client created response: ',clientCreatedResponse);
-        return clientCreatedResponse.status;
+        console.log('Client created response: ',(await clientCreatedResponse).status);
+        return (await clientCreatedResponse).status;
     }catch(error){
         console.error('Client creation falied:',error.message);
         return false;
