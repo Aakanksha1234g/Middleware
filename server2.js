@@ -12,6 +12,8 @@ const rateLimit = require('express-rate-limit');
 const { getAdminToken } = require('./src/admin_token');
 const { checkGroupExists } = require('./src/group/group_check');
 const {create_group} = require('./src/group/create_group');
+const {checkClientExists} = require('./src/client/client_check');
+const {create_client} = require('./src/client/create_client');
 
 const app = express();
 
@@ -141,7 +143,6 @@ app.post('/signup',limiter,async (req, res) => {
       );
       console.log(`Verification email sent to ${user_email}`);
       const organization = user_email.split('@')[1].split('.')[0];
-      console.log(`Checking if group ${organization} exists.`);
       const organizationExists = await checkGroupExists(organization);
       console.log("organization exists:",organizationExists);
       if(!organizationExists){
@@ -149,11 +150,12 @@ app.post('/signup',limiter,async (req, res) => {
         const groupCreateResp = await create_group(organization);
         console.log('Group created:',groupCreateResp);
       }
-      console.log(`Creating client for group ${organization}`);
       const clientId = `LorvenAI-app-${organization}`;
-      const clientUuid = await setupClientAndRoles(clientId);
-      if (clientUuid) {
-        console.log(`Orgnaization ${organization} has been created with client ${clientUuid}`);
+      const clientExists = await checkClientExists(clientId);
+      console.log("Client exists :", clientExists);
+      if(!clientExists) {
+        const clientCreateResp = await create_client(clientId,organization);
+        console.log("Client created:",clientCreateResp);
       }
       return res.json({data:{details: 'Confirmation email sent. Please click the link in your inbox.',user_id:userId }});
   } 

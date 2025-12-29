@@ -4,6 +4,7 @@ const axios = require('axios');
 
 async function checkGroupExists(organization) {
     try {
+        console.log(`Checking if group ${organization} exists.`);
         console.log('Inside  checkgroupExists function...');
         const adminToken = await getAdminToken();
         const groupExistsResponse = await axios.get(
