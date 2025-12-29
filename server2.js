@@ -1,5 +1,4 @@
 const config = require('./src/config');
-console.log(`config: ${config}`);
 const {checkUserExists} = require('./src/user/user'); 
 const {setupClientAndRoles} = require('./src/client/create_client');
 const express = require('express');
