@@ -15,6 +15,7 @@ const {checkClientExists} = require('./src/client/client_check');
 const {create_client} = require('./src/client/create_client');
 const {getClientId} = require('./src/client/get_client_id');
 const {createUser} = require('./src/user/create_user');
+const {createClientRoles} = require('./src/client/create_client_roles');
 
 const app = express();
 
@@ -129,10 +130,10 @@ app.post('/signup',limiter,async (req, res) => {
         const clientCreateResp = await create_client(clientName,organization);
         console.log("Client created:",clientCreateResp);
       }
-      const clientId = getClientId(clientName);
+      const clientId = await getClientId(clientName);
       console.log('Client Id: ',await clientId);
-      const clientRolesCreated = createClientRoles(clientId);
-      
+      const clientRolesCreated = await createClientRoles(clientId);
+      console.log('client roles created',await clientRolesCreated);
       return res.json({data:{details: 'Confirmation email sent. Please click the link in your inbox.',user_id:userID }});
   } 
   else {
