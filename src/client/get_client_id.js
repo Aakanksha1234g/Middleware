@@ -13,7 +13,8 @@ async function getClientId(client_name){
             {params : {'clientId':client_name},
             headers : {Authorization:`Bearer ${adminToken}`,'Content-Type':'application/json'}}
         );
-        console.log('Get ClientId response : ',getClientIdResponse.data[0]).id;
+        console.log('Get ClientId response : ',getClientIdResponse.data);
+        console.log('Get ClientId response : ',getClientIdResponse.data[0].id);
         return getClientIdResponse.data[0].id;
     }catch(error){
         console.error('Process to get client Id failed:',error.message);

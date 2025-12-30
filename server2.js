@@ -14,6 +14,7 @@ const {create_group} = require('./src/group/create_group');
 const {checkClientExists} = require('./src/client/client_check');
 const {create_client} = require('./src/client/create_client');
 const {getClientId} = require('./src/client/get_client_id');
+const {createUser} = require('./src/user/create_user');
 
 const app = express();
 
@@ -109,39 +110,10 @@ app.post('/signup',limiter,async (req, res) => {
     console.log(`Checking if user_email ${user_email} exists or not`);
     const userExists = await checkUserExists(user_email);
     if (!userExists){
-      
-      const adminToken = await getAdminToken();
-
-      //Create user as Pending(email not verified)
-      console.log('Creating user..');
-      const createResp = await axios.post(
-        `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/users`,
-        {
-          username: user_email, email: user_email,enabled:true,
-          emailVerified:false, credentials: [{type: 'password',value: user_password,temporary: false
-          }],
-          requiredActions: ['VERIFY_EMAIL']
-        },
-        {headers: { Authorization: `Bearer ${adminToken}`,'Content-Type':'application/json'}}
-      );
-      console.log(`User ${user_email} created successfully.`);
-      //Get userId fro Location header
-      const location = createResp.headers.location;   //../users/{id}
-      const userId = location.substring(location.lastIndexOf('/') + 1);     
-
-      //Create email with verify-email link
-      await axios.put( `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/users/${userId}/execute-actions-email`,
-        ['VERIFY_EMAIL'],         //required actions
-        {
-          params: {
-            client_id: config.CLIENT_ID,
-            redirect_uri: 'http://localhost:5173/login'
-          },
-          headers: {
-            Authorization: `Bearer ${adminToken}`, 'Content-Type':'application/json'}
-        }
-      );
-      console.log(`Verification email sent to ${user_email}`);
+      const create_user = await createUser(user_email,user_password);
+      console.log('User create :',create_user);
+      const userID = create_user.userId;
+      console.log('userId:',userID);
       const organization = user_email.split('@')[1].split('.')[0];
       const organizationExists = await checkGroupExists(organization);
       console.log("organization exists:",organizationExists);
@@ -159,7 +131,7 @@ app.post('/signup',limiter,async (req, res) => {
       }
       const clientId = getClientId(clientName);
       console.log('Client Id: ',await clientId);
-      return res.json({data:{details: 'Confirmation email sent. Please click the link in your inbox.',user_id:userId }});
+      return res.json({data:{details: 'Confirmation email sent. Please click the link in your inbox.',user_id:userID }});
   } 
   else {
     console.log(`User with email ${user_email} already exists.`);
