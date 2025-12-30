@@ -131,6 +131,8 @@ app.post('/signup',limiter,async (req, res) => {
       }
       const clientId = getClientId(clientName);
       console.log('Client Id: ',await clientId);
+      const clientRolesCreated = createClientRoles(clientId);
+      
       return res.json({data:{details: 'Confirmation email sent. Please click the link in your inbox.',user_id:userID }});
   } 
   else {
