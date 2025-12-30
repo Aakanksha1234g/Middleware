@@ -7,6 +7,8 @@ const path = require('path');       //this is used to get the file path
 const templateRolesFilePath = path.join('/home/ak/Downloads/client_roles_template.json');
 const roles = JSON.parse(fs.readFileSync(templateRolesFilePath,'utf-8'));
 
+module.exports = roles;
+
 async function createClientRoles(clientUUID){
     try {
         console.log(`Creating roles for clientId ${clientUUID}`);
@@ -25,6 +27,12 @@ async function createClientRoles(clientUUID){
                     console.error(`Error while creating role: ${role.name}`, error);
                 }
         }
+        const rolesCreatedResponse = await axios.get(
+            `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/clients/${clientUUID}/roles`,
+            {headers : {Authorization: `Bearer ${adminToken}`,'Content-Type':'application/json'}}
+        );
+        console.log('rolesCreatedReseponse:',rolesCreatedResponse.status);
+        return rolesCreatedResponse.status;
 
     }catch(error){
         console.error('Error while creating role in createClientRoles func:',error.response.data);
@@ -33,3 +41,4 @@ async function createClientRoles(clientUUID){
 }
 
 module.exports = {createClientRoles};
+

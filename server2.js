@@ -16,6 +16,7 @@ const {create_client} = require('./src/client/create_client');
 const {getClientId} = require('./src/client/get_client_id');
 const {createUser} = require('./src/user/create_user');
 const {createClientRoles} = require('./src/client/create_client_roles');
+const {createCompositeRoles} = require('./src/client/create_composite_roles');
 
 const app = express();
 
@@ -130,10 +131,11 @@ app.post('/signup',limiter,async (req, res) => {
         const clientCreateResp = await create_client(clientName,organization);
         console.log("Client created:",clientCreateResp);
       }
-      const clientId = await getClientId(clientName);
-      console.log('Client Id: ',await clientId);
-      const clientRolesCreated = await createClientRoles(clientId);
+      const clientUUID = await getClientId(clientName);
+      console.log('Client Id: ',await clientUUID);
+      const clientRolesCreated = await createClientRoles(clientUUID);
       console.log('client roles created',await clientRolesCreated);
+      const CompositeRolesFetched = await createCompositeRoles(clientUUID);
       return res.json({data:{details: 'Confirmation email sent. Please click the link in your inbox.',user_id:userID }});
   } 
   else {
@@ -142,7 +144,7 @@ app.post('/signup',limiter,async (req, res) => {
     }
 }catch (error) {
     console.error('Signup failed:', error.response?.data || error.message);
-    res.status(400).json({  data: { detail: error.response?.data?.errorMessage || 'Signup failed' } 
+    res.status(400).json({data: { detail: error.response?.data?.errorMessage || 'Signup failed' } 
     });
   }
 });
