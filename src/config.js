@@ -1,4 +1,3 @@
-const { KEYCLOAK_ADMIN_USER, KEYCLOAK_ADMIN_PASSWORD } = require('../sample');
 
 require('dotenv').config();    //This loads the dotenv file into process.env
 

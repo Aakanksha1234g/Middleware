@@ -13,6 +13,7 @@ const { checkGroupExists } = require('./src/group/group_check');
 const {create_group} = require('./src/group/create_group');
 const {checkClientExists} = require('./src/client/client_check');
 const {create_client} = require('./src/client/create_client');
+const {getClientId} = require('./src/client/get_client_id');
 
 const app = express();
 
@@ -149,13 +150,15 @@ app.post('/signup',limiter,async (req, res) => {
         const groupCreateResp = await create_group(organization);
         console.log('Group created:',groupCreateResp);
       }
-      const clientId = `LorvenAI-app-${organization}`;
-      const clientExists = await checkClientExists(clientId);
+      const clientName = `LorvenAI-app-${organization}`;
+      const clientExists = await checkClientExists(clientName);
       console.log("Client exists :", clientExists);
       if(!clientExists) {
-        const clientCreateResp = await create_client(clientId,organization);
+        const clientCreateResp = await create_client(clientName,organization);
         console.log("Client created:",clientCreateResp);
       }
+      const clientId = getClientId(clientName);
+      console.log('Client Id: ',await clientId);
       return res.json({data:{details: 'Confirmation email sent. Please click the link in your inbox.',user_id:userId }});
   } 
   else {

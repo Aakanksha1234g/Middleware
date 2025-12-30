@@ -1,4 +1,3 @@
-const {execSync} = require('child_process');  //used to run the shell commands
 const config = require('../config');  
 const {getAdminToken} = require('../admin_token');
 const axios = require('axios');
