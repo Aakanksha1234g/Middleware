@@ -14,7 +14,6 @@
 
 ### Password grant response of token endpoint:
 
-
 ```
 {
 "access_token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -27,7 +26,6 @@
 "scope":"email profile"
 }
 ```
-
 
 *At brevo->smtp & api
 I added new sender with
@@ -50,12 +48,12 @@ authentication type : ✔ password
 password : bskKrlIu5XeM93j
 allow utf-8 : ✔ enabled*
 
-## Keycloak Email tab
+## Keycloak Realm (LorvenAI) Email tab
 
 In your realm’s **Email** settings:
 
 1. Keep:
-   * From: `aakanksha@thequantum.ai`
+   * From: `aakanksha@thequantum.ai                    // this is just for the display`
    * Host: `smtp-relay.brevo.com`
    * Port: `587`
    * Authentication: ON
