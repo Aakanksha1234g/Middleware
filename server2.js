@@ -17,7 +17,7 @@ const {getClientId} = require('./src/client/get_client_id');
 const {createUser} = require('./src/user/create_user');
 const {createClientRoles} = require('./src/client/create_client_roles');
 const {createCompositeRoles} = require('./src/client/create_composite_roles');
-
+const {userExistsInGroup} = require('./src/group/user_in_group');
 const app = express();
 
 app.use(express.json());
@@ -117,26 +117,32 @@ app.post('/signup',limiter,async (req, res) => {
       const userID = create_user.userId;
       console.log('userId:',userID);
       const organization = user_email.split('@')[1].split('.')[0];
+      console.log('Checking if group ')
       const organizationExists = await checkGroupExists(organization);
       console.log("organization exists:",organizationExists);
       if(!organizationExists){
         console.log(`Group ${organization} doesn't exist. Creating it...`);
         const groupCreateResp = await create_group(organization);
         console.log('Group created:',groupCreateResp);
-      }
-      const clientName = `LorvenAI-app-${organization}`;
-      const clientExists = await checkClientExists(clientName);
-      console.log("Client exists :", clientExists);
-      if(!clientExists) {
-        const clientCreateResp = await create_client(clientName,organization);
-        console.log("Client created:",clientCreateResp);
-      }
-      const clientUUID = await getClientId(clientName);
-      console.log('Client Id: ',await clientUUID);
-      const clientRolesCreated = await createClientRoles(clientUUID);
-      console.log('client roles created',await clientRolesCreated);
-      const CompositeRolesCreated = await createCompositeRoles(clientUUID);
-      console.log('Composite roles created : ', await CompositeRolesCreated);
+        const clientName = `LorvenAI-app-${organization}`;
+        const clientExists = await checkClientExists(clientName);
+        console.log("Client exists :", clientExists);
+        if(!clientExists) {
+          const clientCreateResp = await create_client(clientName,organization);
+          console.log("Client created:",clientCreateResp);
+        }
+        const clientUUID = await getClientId(clientName);
+        console.log('Client Id: ',await clientUUID);
+        const clientRolesCreated = await createClientRoles(clientUUID);
+        console.log('client roles created',await clientRolesCreated);
+        const CompositeRolesCreated = await createCompositeRoles(clientUUID);
+        console.log('Composite roles created : ', await CompositeRolesCreated);
+        console.log(`Group ${organization} exists.`);
+        console.log(`Checking if any user exists in it ...`);
+        const userExistsInGroupResp = await userExistsInGroup(organization,user_email);
+        console.log('userExistsInGroup response: ',userExistsInGroupResp);
+        // const createdUserAdminofGroupResp = await createUserAdminOfGroup(user_email,organization);
+        }
       return res.json({data:{details: 'Confirmation email sent. Please click the link in your inbox.',user_id:userID }});
   } 
   else {
