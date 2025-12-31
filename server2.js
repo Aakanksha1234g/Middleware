@@ -135,7 +135,8 @@ app.post('/signup',limiter,async (req, res) => {
       console.log('Client Id: ',await clientUUID);
       const clientRolesCreated = await createClientRoles(clientUUID);
       console.log('client roles created',await clientRolesCreated);
-      const CompositeRolesFetched = await createCompositeRoles(clientUUID);
+      const CompositeRolesCreated = await createCompositeRoles(clientUUID);
+      console.log('Composite roles created : ', await CompositeRolesCreated);
       return res.json({data:{details: 'Confirmation email sent. Please click the link in your inbox.',user_id:userID }});
   } 
   else {

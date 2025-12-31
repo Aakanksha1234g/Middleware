@@ -7,15 +7,13 @@ const path = require('path');       //this is used to get the file path
 const templateRolesFilePath = path.join('/home/ak/Downloads/client_roles_template.json');
 const roles = JSON.parse(fs.readFileSync(templateRolesFilePath,'utf-8'));
 
-module.exports = roles;
-
 async function createClientRoles(clientUUID){
     try {
         console.log(`Creating roles for clientId ${clientUUID}`);
         console.log(`Inside the createClientRoles function...`);
         const adminToken = await getAdminToken();
         for(const role of roles){
-            try {
+            try {//creating roles, child roles will be added to composite roles in create_composite_roles function
                 console.log(`role ${role.name} is getting created...`);
                 await axios.post(
                     `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/clients/${clientUUID}/roles`,
