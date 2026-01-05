@@ -17,9 +17,11 @@ async function getAdminToken() {
         return response.data.access_token;
     } catch(error) {
         console.error("Failed to fetch admin token:", error.message);
-        console.error("Error response: ",error.response);
         console.error("Response data ",error.response.data);
-        throw new Error('Admin token error:',error);
+        const ERROR = error.response.data.error_description;
+        console.log(ERROR);
+        throw ERROR;
+        // return error.response.data.error_description;
     }
 }
 

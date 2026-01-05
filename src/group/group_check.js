@@ -21,7 +21,7 @@ async function checkGroupExists(organization) {
     } catch(error) {
         if(error.response?.status === 404) return false;
         console.error('Group check failed:',error.message);
-        return false;
+        throw error;
     }
 }
 module.exports = {checkGroupExists};

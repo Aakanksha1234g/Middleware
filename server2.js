@@ -105,21 +105,23 @@ app.post('/login', limiter, async (req, res) => {
 app.post('/signup',limiter,async (req, res) => {
   try {
     console.log("/signup endpoint called...");
+    console.log(req)
     const {user_email, user_password} = req.body;
     //Check if the group name exists with that email id part
-    console.log(`user_email: ${user_email}, user pass: ${user_password}`)
-    console.log(`email type: ${typeof user_email}`)
-    console.log(`Checking if user_email ${user_email} exists or not`);
-    const userExists = await checkUserExists(user_email);
-    if (!userExists){
+    // console.log(`user_email: ${user_email}, user pass: ${user_password}`)
+    // console.log(`email type: ${typeof user_email}`)
+    // console.log(`Checking if user_email ${user_email} exists or not`);
+    const userID = await checkUserExists(user_email);
+    console.log('userId:',userID);
+    if (!userID){
       const create_user = await createUser(user_email,user_password);
       console.log('User create :',create_user);
       const userID = create_user.userId;
       console.log('userId:',userID);
       const organization = user_email.split('@')[1].split('.')[0];
-      console.log('Checking if group ')
+      // console.log('Checking if group ')
       const organizationExists = await checkGroupExists(organization);
-      console.log("organization exists:",organizationExists);
+      // console.log("organization exists:",organizationExists);
       if(!organizationExists){
         console.log(`Group ${organization} doesn't exist. Creating it...`);
         const groupCreateResp = await create_group(organization);
@@ -137,17 +139,17 @@ app.post('/signup',limiter,async (req, res) => {
         console.log('client roles created',await clientRolesCreated);
         const CompositeRolesCreated = await createCompositeRoles(clientUUID);
         console.log('Composite roles created : ', await CompositeRolesCreated);
-        console.log(`Group ${organization} exists.`);
-        console.log(`Checking if any user exists in it ...`);
-        const userExistsInGroupResp = await userExistsInGroup(organization,user_email);
-        console.log('userExistsInGroup response: ',userExistsInGroupResp);
-        // const createdUserAdminofGroupResp = await createUserAdminOfGroup(user_email,organization);
-        }
-      return res.json({data:{details: 'Confirmation email sent. Please click the link in your inbox.',user_id:userID }});
-  } 
+        console.log(`Checking if any user exists in Group ${organization} ...`);
+        // const userExistsInGroupResp = await userExistsInGroup(organization,user_email);
+        // console.log('userExistsInGroup response: ',userExistsInGroupResp);
+        //const createdUserAdminofGroupResp = await createUserAdminOfGroup(user_email,organization);
+    }
+    console.log('returning response...');
+    return res.status(200).json({data:{details: 'Confirmation email sent. Please click the link in your inbox.',user_id:userID }});
+  }
   else {
     console.log(`User with email ${user_email} already exists.`);
-      return res.status(400).json({data: { detail: 'User with this email already exists' } });
+      return res.status(200).json({data: { detail: 'User with this email already exists',user_id:userID } });
     }
 }catch (error) {
     console.error('Signup failed:', error.response?.data || error.message);
