@@ -68,3 +68,11 @@ In your realm’s **Email** settings:
 
 * Optionally disable **Allow UTF‑8** (not required for this).
 * Click **Test connection** on the Email tab.
+
+
+## **Organization Admin Roles:**
+
+* **`query-groups`** - List groups
+* **`query-users`** - Search users
+* **`manage-users`** - Create/invite users to their org group
+* **`view-users`** - View group members

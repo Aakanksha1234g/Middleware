@@ -1,60 +1,50 @@
-const config = require('../config');
-const axios = require('axios');
-const { getAdminToken } = require('../admin_token');
+async function createUserAdminOfGroup(userId, orgGroupId) {
+    try {
+        const adminToken = await getAdminToken();
+         
+        // ✅ Group membership (204 success)
+        const addUserToGroup = await axios.put(
+            `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/users/${userId}/groups/${orgGroupId}`,
+            null,                  
+            { headers: { Authorization: `Bearer ${adminToken}` }}
+        );
+        console.log(`addUserToGroup: ${addUserToGroup.status}`);
 
-async function checkUserExistsController(req, res) {
-  try {
-    const { email } = req.body;
+        // ✅ Get realm-management client
+        const clients = await axios.get(
+            `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/clients?clientId=realm-management`
+        );
+        const realmManagementClientId = clients.data[0].id;
 
-    if (!email) {
-      return res.status(400).json({
-        error: "email is required"
-      });
-    }
-
-    console.log("Checking if user exists:", email);
-
-    const adminToken = await getAdminToken();
-
-    const response = await axios.get(
-      `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/users`,
-      {
-        headers: {
-          Authorization: `Bearer ${adminToken}`
-        },
-        params: {
-          username: email,
-          exact: true
+        // ✅ FIXED: Use ONLY available roles
+        const realmRoles = ['query-groups', 'query-users', 'manage-users', 'view-users'];
+        
+        for (const roleName of realmRoles) {
+            try {
+                await axios.post(
+                    `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/users/${userId}/role-mappings/clients/${realmManagementClientId}`,
+                    [{ name: roleName }],
+                    { headers: { Authorization: `Bearer ${adminToken}`, 'Content-Type': 'application/json' } }
+                );
+                console.log(`✅ ASSIGNED: ${roleName}`);
+            } catch (roleError) {
+                if (roleError.response?.status === 409) {
+                    console.log(`⏭️ ${roleName} already assigned`);
+                } else {
+                    console.error(`❌ ${roleName}:`, roleError.response?.status);
+                }
+            }
         }
-      }
-    );
 
-    const users = response.data;
-
-    // ✅ User does not exist
-    if (users.length === 0) {
-      return res.status(200).json({
-        exists: false
-      });
+        // ✅ Verify
+        const assignRolesResponse = await axios.get(
+            `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/users/${userId}/role-mappings`
+        );
+        console.log('✅ FINAL ROLES:', JSON.stringify(assignRolesResponse.data.clientMappings, null, 2));
+        
+        return true;
+    } catch(error) {
+        console.error('Error:', error.response?.status, error.response?.data);
+        return false;
     }
-
-    // ✅ User exists
-    return res.status(200).json({
-      exists: true,
-      user: users[0]
-    });
-
-  } catch (error) {
-    console.error(
-      "checkUserExistsController failed:",
-      error.response?.data || error.message
-    );
-
-    return res.status(error.response?.status || 500).json({
-      error: "Keycloak user lookup failed",
-      details: error.response?.data || error.message
-    });
-  }
 }
-
-module.exports = { checkUserExistsController };
