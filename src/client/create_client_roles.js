@@ -9,32 +9,29 @@ const roles = JSON.parse(fs.readFileSync(templateRolesFilePath,'utf-8'));
 
 async function createClientRoles(clientUUID){
     try {
+        let rolesCreatedStatus;
         console.log(`Creating roles for clientId ${clientUUID}`);
         console.log(`Inside the createClientRoles function...`);
         const adminToken = await getAdminToken();
         for(const role of roles){
-            try {//creating roles, child roles will be added to composite roles in create_composite_roles function
+            //creating roles, child roles will be added to composite roles in create_composite_roles function
                 console.log(`role ${role.name} is getting created...`);
-                await axios.post(
+                const rolesCreatedResponse = await axios.post(
                     `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/clients/${clientUUID}/roles`,
                     {name:role.name, description:role.description||''},
                     {headers:{Authorization:`Bearer ${adminToken}`,'Content-Type':'application/json'}}
                 );
+                console.log('rolesCreatedResponse:',rolesCreatedResponse);
+                rolesCreatedStatus = rolesCreatedResponse.status;
+                console.log('rolesCreatedResponse:',rolesCreatedStatus);
+                // console.log('rolesCreatedReseponse:',rolesCreatedResponse.data.errorMessage);
                 console.log(`Role created: ${role.name}`);
-                }catch(error){
-                    console.error(`Error while creating role: ${role.name}`, error);
                 }
-        }
-        const rolesCreatedResponse = await axios.get(
-            `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/clients/${clientUUID}/roles`,
-            {headers : {Authorization: `Bearer ${adminToken}`,'Content-Type':'application/json'}}
-        );
-        console.log('rolesCreatedReseponse:',rolesCreatedResponse.status);
-        return rolesCreatedResponse.status;
+        return rolesCreatedStatus;
 
     }catch(error){
-        console.error('Error while creating role in createClientRoles func:',error.response.data);
-        return false
+        console.error(`Error while creating roles `, error.status || error.response?.data?.errorMessage || error);
+        throw error;
     }
 }
 

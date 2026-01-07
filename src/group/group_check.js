@@ -13,9 +13,10 @@ async function checkGroupExists(organization) {
             headers: {'Authorization' : `Bearer ${adminToken}`},
         }
         );
-        const groups = groupExistsResponse.data;  //this is an array
-        console.log("group check response data:",groups);
-        const groupExists = groups.some(group => group.name === organization);
+        // console.log('groupsExistsResponse:',groupExistsResponse); //consists headers, adminToken,url,data:[]
+        const group = groupExistsResponse.data;  //this is an array which has searched group info
+        console.log("group check response data:",group); 
+        const groupExists = group.some(group => group.name === organization);  //has true/false value
         console.log(`Group ${organization} exists:`, groupExists);
         return groupExists;
     } catch(error) {

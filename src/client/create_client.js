@@ -10,7 +10,7 @@ async function create_client(client_id,organization) {
         const adminToken = await getAdminToken();
         const payload = {
             'clientId' :client_id,
-            'name':'LorvenAI application',
+            'name': client_id,
             'enabled':true,
             'publicClient':false,     //to get client secret, if true then no client secret generated
             'clientAuthenticatorType':'client-secret',

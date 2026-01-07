@@ -6,24 +6,22 @@ async function create_group(group_name) {
     try {
         console.log('Inside create_group function...');
         const adminToken = await getAdminToken();
-        const response = axios.post (
+        const groupCreatedResponse = await axios.post (
             `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/groups`,
             {name: group_name},
             {headers : {'Authorization': `Bearer ${adminToken}`,
             'Content-Type': 'application/json'},
             }
             );
-        const groupCreatedResponse = await axios.get(
-        `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/groups?search=${group_name}&exact=true&max=1`,
-        {
-            headers: {'Authorization' : `Bearer ${adminToken}`},
-        }
-        );
-        console.log(`Group ${group_name} created successfully with response : ${groupCreatedResponse.status}`);
+            console.log('Group created response:', groupCreatedResponse);
+        // console.log("create group response:",groupCreatedResponse); //consists of status: 201 and statusText:'Created' 
+        console.log("create group response status:",groupCreatedResponse.status);
+        console.log(`Group created response status: ${groupCreatedResponse.status}, statusText: ${groupCreatedResponse.statusText}`);
         return groupCreatedResponse.status;
     }catch(error){
         console.error('Group creation failed:',error.message);
         return false;
     }
 }
+
 module.exports = {create_group};

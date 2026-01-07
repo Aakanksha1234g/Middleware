@@ -41,7 +41,9 @@ async function createCompositeRoles(clientUUID){
             const compositePayload = [];       //composite roles
             for(const childRoleName of role.composites.client["LorvenAI-app"]){
                 //check the childrole value(e.g. cinescribe.screen1.read in map dictionary and save it in childrole)
+                console.log(`Searching child role: ${childRoleName}`);
                 const childRole = map[childRoleName];
+                console.log(`childRole: ${childRole}, childRoleId: ${childRole.id}`);
                 compositePayload.push({   //store that childrole value in the composite payload
                     id:childRole.id,
                     name: childRole.name

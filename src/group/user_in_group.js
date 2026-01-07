@@ -16,9 +16,13 @@ async function userExistsInGroup(organization,user_email){
             `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/groups/${groupID}/members`,
             {headers: {Authorization : `Bearer ${adminToken}`}}
         );
-        console.log('UserExistsInGroupResponse status:' , anyUserExistsInGroupResponse.status);
-        console.log('UserExistsInGroupResponse :' ,anyUserExistsInGroupResponse.data);
-        return anyUserExistsInGroupResponse.data;
+        console.log(`anyUserExistsInGroupResponse`, anyUserExistsInGroupResponse);
+        console.log('UserExistsInGroupResponse data:' , anyUserExistsInGroupResponse.data);  //if it is empty means user doens't exist in that group
+        
+        return {
+           'userExistsInGroup' :anyUserExistsInGroupResponse.data,
+           'groupID': groupID
+        };
     }catch(error){
         console.error(`Error in userExistsInGroup function: ${error}`);
         return false;

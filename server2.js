@@ -18,6 +18,8 @@ const {createUser} = require('./src/user/create_user');
 const {createClientRoles} = require('./src/client/create_client_roles');
 const {createCompositeRoles} = require('./src/client/create_composite_roles');
 const {userExistsInGroup} = require('./src/group/user_in_group');
+const {createUserAdminOfGroup} = require('./src/user/group_admin');
+
 const app = express();
 
 app.use(express.json());
@@ -60,22 +62,22 @@ app.post('/login', limiter, async (req, res) => {
     console.log("decoded token:", decodedToken);
     const userId = decodedToken.sub;
     console.log(`userId: ${userId}`);
-    const cacheKey = `perms:${userId}`;
+    // const cacheKey = `perms:${userId}`;
     
-    let permissions = await redis.get(cacheKey);
-    console.log(`permissions from cache: ${permissions}`);
-    if (!permissions) {
-      const userInfo = await axios.get(
-        `${config.KEYCLOAK_URL}/realms/${config.KEYCLOAK_REALM}/protocol/openid-connect/userinfo`,
-        { headers: { Authorization: `Bearer ${tokens.data.access_token}` } }
-      );
-      console.log("user permissions: ",permissions);
+    // let permissions = await redis.get(cacheKey);
+    // console.log(`permissions from cache: ${permissions}`);
+    // if (!permissions) {
+    //   const userInfo = await axios.get(
+    //     `${config.KEYCLOAK_URL}/realms/${config.KEYCLOAK_REALM}/protocol/openid-connect/userinfo`,
+    //     { headers: { Authorization: `Bearer ${tokens.data.access_token}` } }
+    //   );
+    //   console.log("user permissions: ",permissions);
       
-      permissions = mapRolesToScreens(userInfo.data.realm_access?.roles || []);
-      await redis.setEx(cacheKey, 900, JSON.stringify(permissions));
-    } else {
-      permissions = JSON.parse(permissions);
-    }
+    //   permissions = mapRolesToScreens(userInfo.data.realm_access?.roles || []);
+    //   await redis.setEx(cacheKey, 900, JSON.stringify(permissions));
+    // } else {
+    //   permissions = JSON.parse(permissions);
+    // }
 
     const enrichedToken = jwt.sign({
       sub: userId,
@@ -84,7 +86,7 @@ app.post('/login', limiter, async (req, res) => {
     }, config.JWT_SECRET, { expiresIn: '15m' });
 
     //check what is in the access token
-    console.log("enriched token:",enrichedToken);
+    console.log("access token:",enrichedToken);
     res.json({
       data: {
         response: {
@@ -105,7 +107,6 @@ app.post('/login', limiter, async (req, res) => {
 app.post('/signup',limiter,async (req, res) => {
   try {
     console.log("/signup endpoint called...");
-    console.log(req)
     const {user_email, user_password} = req.body;
     //Check if the group name exists with that email id part
     // console.log(`user_email: ${user_email}, user pass: ${user_password}`)
@@ -121,14 +122,14 @@ app.post('/signup',limiter,async (req, res) => {
       const organization = user_email.split('@')[1].split('.')[0];
       // console.log('Checking if group ')
       const organizationExists = await checkGroupExists(organization);
-      // console.log("organization exists:",organizationExists);
+       console.log("organization exists:",organizationExists);
       if(!organizationExists){
         console.log(`Group ${organization} doesn't exist. Creating it...`);
         const groupCreateResp = await create_group(organization);
         console.log('Group created:',groupCreateResp);
-        const clientName = `LorvenAI-app-${organization}`;
-        const clientExists = await checkClientExists(clientName);
-        console.log("Client exists :", clientExists);
+         const clientName = `LorvenAI-app-${organization}`;
+         const clientExists = await checkClientExists(clientName);
+         console.log("Client exists :", clientExists);
         if(!clientExists) {
           const clientCreateResp = await create_client(clientName,organization);
           console.log("Client created:",clientCreateResp);
@@ -140,12 +141,13 @@ app.post('/signup',limiter,async (req, res) => {
         const CompositeRolesCreated = await createCompositeRoles(clientUUID);
         console.log('Composite roles created : ', await CompositeRolesCreated);
         console.log(`Checking if any user exists in Group ${organization} ...`);
-        // const userExistsInGroupResp = await userExistsInGroup(organization,user_email);
-        // console.log('userExistsInGroup response: ',userExistsInGroupResp);
-        //const createdUserAdminofGroupResp = await createUserAdminOfGroup(user_email,organization);
-    }
+        const userExistsInGroupResp = await userExistsInGroup(organization,user_email);
+        console.log('userExistsInGroup response: ',userExistsInGroupResp.userExistsInGroup);
+       const createdUserAdminofGroupResp = await createUserAdminOfGroup(userID,userExistsInGroupResp.groupID);
+       console.log('createdUserAdminofGroupResp:',createdUserAdminofGroupResp);
+     }
     console.log('returning response...');
-    return res.status(200).json({data:{details: 'Confirmation email sent. Please click the link in your inbox.',user_id:userID }});
+    return res.status(200).json({data:{details: `Confirmation email sent to email ${user_email}. Please click the link in your inbox.`,user_id:userID }});
   }
   else {
     console.log(`User with email ${user_email} already exists.`);
