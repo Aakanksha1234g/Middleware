@@ -19,6 +19,7 @@ const {createClientRoles} = require('./src/client/create_client_roles');
 const {createCompositeRoles} = require('./src/client/create_composite_roles');
 const {userExistsInGroup} = require('./src/group/user_in_group');
 const {createUserAdminOfGroup} = require('./src/user/group_admin');
+const {checkUserAdminOfGroup} = require('./src/user/check_user_admin');
 
 const app = express();
 
@@ -38,6 +39,7 @@ redis.connect().catch(console.error);
 const limiter = rateLimit({ windowMs: 60 * 1000, max: 10000 });
 app.use('/', limiter);
 
+// [X] DON'T DELETE FOLLOWING CODE, IT IS USED TO DIRECTLY LOGIN THE USER 
 
 app.post('/login', limiter, async (req, res) => {
   try {
@@ -64,9 +66,7 @@ app.post('/login', limiter, async (req, res) => {
     console.log(`userId: ${userId}`);
     
     const enrichedToken = jwt.sign({
-      sub: userId,
-      permissions,
-      modules: Object.keys(permissions)
+      sub: userId
     }, config.JWT_SECRET, { expiresIn: '15m' });
 
     //check what is in the access token
@@ -75,9 +75,7 @@ app.post('/login', limiter, async (req, res) => {
       data: {
         response: {
           access_token: enrichedToken,
-          refresh_token: tokens.data.refresh_token,
-          permissions,
-          modules: Object.keys(permissions)
+          refresh_token: tokens.data.refresh_token
         }
       }
     });
@@ -87,6 +85,85 @@ app.post('/login', limiter, async (req, res) => {
     res.status(401).json({ data: { detail: 'Invalid credentials' } });
   }
 });
+
+// DON'T DELETE FOLLOWING CODE, IT IS USED TO CHECK IF THE USER IS ADMIN OR NOT AND THEN LOGIN THAT USER.
+//it is working till organization exists check, pending checkUserAdminOfGroup function to be fixed.
+
+// app.post('/login', limiter, async (req, res) => {
+//   try {
+//     console.log("......../login called...");
+//     console.log("/login api called");
+//     const { user_email, user_password } = req.body;
+//     const userID = await checkUserExists(user_email);
+//     console.log('userId:',userID);
+//     if (!userID){
+//       return res.status(403).json({detail: `User with email ${user_email} not found. Please signup first.`});
+//     }
+//     else {
+//       console.log(`User with email ${user_email} exists with userID: ${userID}`);
+//       const organization = user_email.split('@')[1].split('.')[0];
+//       // console.log('Checking if group ')
+//       const organizationExists = await checkGroupExists(organization);
+//       console.log("organization exists:",organizationExists);
+//       if(!organizationExists){
+//         console.log(`Group ${organization} doesn't exist.`);
+//         return res.status(404).json({data: {detail: `Organization group ${organization} not found.`}});
+//       }
+//       console.log(`Group ${organization} exists.`);
+//       console.log(`Checking if user is admin of group ${organization}`);
+//       const userAdminOfGroup = await checkUserAdminOfGroup(userID,organization);
+//       console.log(`userAdminOfGroup response: `,userAdminOfGroup);
+//       if(!userAdminOfGroup){
+//         console.log(`User ${user_email} is not admin of group ${organization}`);
+//         return res.status(403).json({data: {detail: `User is not admin of organization ${organization}.`}});
+//       }
+//       else {
+//         console.log(`User ${user_email} is admin of group ${organization}`);
+//         console.log(`Logging in user ...`);
+//         const tokens = await axios.post(
+//           `${config.KEYCLOAK_URL}/realms/${config.KEYCLOAK_REALM}/protocol/openid-connect/token`,
+//           new URLSearchParams({
+//             grant_type: 'password',
+//             client_id: config.CLIENT_ID,
+//             client_secret: config.CLIENT_SECRET,
+//             username: user_email,
+//             password: user_password,
+//             scope: 'openid email profile'
+//           }),
+//           { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+//         );
+//         console.log(`tokens expires in  : ${tokens.data.expires_in}`);
+
+//         const decodedToken = jwt.decode(tokens.data.access_token);
+//         console.log("decoded token:", decodedToken);
+//         const userId = decodedToken.sub;
+//         console.log(`userId: ${userId}`);
+        
+//         const enrichedToken = jwt.sign({
+//           sub: userId,
+//           permissions,
+//           modules: Object.keys(permissions)
+//         }, config.JWT_SECRET, { expiresIn: '15m' });
+
+//         //check what is in the access token
+//         console.log("access token:",enrichedToken);
+//         res.json({
+//           data: {
+//             response: {
+//               access_token: enrichedToken,
+//               refresh_token: tokens.data.refresh_token,
+//               permissions,
+//               modules: Object.keys(permissions)
+//             }
+//           }
+//         });
+//           }
+//         }
+//   } catch (error) {
+//     console.error('Login failed:', error.response?.data || error.message);
+//     res.status(401).json({ data: { detail: `Invalid credentials : ${error}` } });
+//   }
+// });
 
 app.post('/signup',limiter,async (req, res) => {
   try {

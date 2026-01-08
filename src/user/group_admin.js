@@ -18,7 +18,6 @@ async function createUserAdminOfGroup(userId, orgGroupId) {
         );
         console.log(`addUserToGroup response : ${addUserToGroup.status}, ${addUserToGroup.statusText}`);     //if user added to group returns 204 No Content
 
-
         //To add realm-management roles to user get the realm-management client UUID
         const clients = await axios.get(
             `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/clients?clientId=realm-management`,
@@ -28,8 +27,7 @@ async function createUserAdminOfGroup(userId, orgGroupId) {
         const realmManagementClientId = clients.data[0].id;
         console.log('realm-management client ID:',realmManagementClientId);
 
-
-        console.log('Checking roles avaialable in realm-management client...');
+        console.log('Checking roles available in realm-management client...');
         const availableRoles = await axios.get(
             `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/clients/${realmManagementClientId}/roles`,
             { headers: { Authorization: `Bearer ${adminToken}` } }
@@ -61,24 +59,21 @@ async function createUserAdminOfGroup(userId, orgGroupId) {
                     rolePayload,
                     {headers: {Authorization: `Bearer ${adminToken}`,'Content-Type':'application/json'}}
                 );
-                console.log(`Assigned role ${roleName} to user ${userId}:`, rolesAssignedToAdmin.status);
+                console.log(`Assigned role ${roleName} to user ${userId}:`, rolesAssignedToAdmin.status);  
             }catch(error){
-                console.error('Error asigning admin role to user:',error);
+                console.error(`Error asigning admin role to user: ${error}, ${error.response?.data}`); //if roles are assigned then 204 no content is returned, else error is logged.
             }
         }
-
-
-        // const assignRolesResponse = await axios.get(
-        //     `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/users/${userId}/role-mappings`);
-        // console.log('Assign realm roles response:',assignRolesResponse);
-        // console.log('Assigned realm roles to user:', assignRolesResponse.data);
+        const assignRolesResponse = await axios.get(
+            `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/users/${userId}/role-mappings`);
+        console.log('Assign realm roles response:',assignRolesResponse);
+        console.log('Assigned realm roles to user:', assignRolesResponse.data);
         
-        // console.log(` User ${userId} is now admin of org group ${orgGroupId}`);
+        console.log(` User ${userId} is now admin of org group ${orgGroupId}`);
     }catch(error){
         console.error(`Error in createUserAdminOfGroup function: ${error}`);
         return false;
     }
-    
 }
 
 module.exports = {createUserAdminOfGroup};
