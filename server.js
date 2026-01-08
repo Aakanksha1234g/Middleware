@@ -1,169 +1,240 @@
-const express = require('express');           // Creates web server to handle HTTP requests
-const Redis = require('redis');               // Fast in-memory cache for storing permissions
-const jwt = require('jsonwebtoken');          // Creates/validates secure tokens
-const axios = require('axios');               // Makes HTTP requests to Keycloak
-const cookieParser = require('cookie-parser'); // Reads cookies from browser requests
-const cors = require('cors');                 // Allows frontend (5173) to talk to backend (3001)
-const rateLimit = require('express-rate-limit'); // Prevents spam attacks (10k req/min max)
+const config = require('./src/config');
+const {checkUserExists} = require('./src/user/user'); 
+const {setupClientAndRoles} = require('./src/client/create_client');
+const express = require('express');
+const Redis = require('redis');
+const jwt = require('jsonwebtoken');
+const axios = require('axios');
+const cookieParser = require('cookie-parser');
+const cors = require('cors');
+const rateLimit = require('express-rate-limit');
+const { getAdminToken } = require('./src/admin_token');
+const { checkGroupExists } = require('./src/group/group_check');
+const {create_group} = require('./src/group/create_group');
+const {checkClientExists} = require('./src/client/client_check');
+const {create_client} = require('./src/client/create_client');
+const {getClientId} = require('./src/client/get_client_id');
+const {createUser} = require('./src/user/create_user');
+const {createClientRoles} = require('./src/client/create_client_roles');
+const {createCompositeRoles} = require('./src/client/create_composite_roles');
+const {userExistsInGroup} = require('./src/group/user_in_group');
+const {createUserAdminOfGroup} = require('./src/user/group_admin');
 
-const app = express(); // Creates our main web server
+const app = express();
 
-// ================= MIDDLEWARE (runs on EVERY request) =================
-// Parses incoming JSON data from frontend (like {email, password})
 app.use(express.json());
-
-// Reads cookies sent by browser (like auth_token)
 app.use(cookieParser());
 
-// Allows requests from React frontend running on localhost:5173
 app.use(cors({
-  origin: 'http://localhost:5173',  // Only allow YOUR frontend
-  credentials: true                 // Allow cookies to be sent
+  origin: 'http://localhost:5173',                             
+  credentials: true
 }));
 
-// ================= REDIS CONNECTION (permissions cache) =================
-// Redis stores user permissions so we don't ask Keycloak every time
-const redis = Redis.createClient({ 
-  url: 'redis://localhost:6379'     // Redis server address
-});
-redis.connect(); // Connect to Redis (runs in background)
+// Redis connection
+const redis = Redis.createClient({ url: 'redis://localhost:6379' });
+redis.connect().catch(console.error);
 
-// ================= RATE LIMITING (security) =================
-// Limits users to 10k login attempts per minute to prevent spam/bots
-const limiter = rateLimit({ 
-  windowMs: 60 * 1000,              // 1 minute window
-  max: 10000                        // Max 10k requests per minute per IP
-});
-app.use('/auth', limiter);             // Only apply to /auth routes
+// Rate limiting
+const limiter = rateLimit({ windowMs: 60 * 1000, max: 10000 });
+app.use('/', limiter);
 
-// ================= CONFIGURATION (Keycloak settings) =================
-const config = {
-  KEYCLOAK_URL: 'http://localhost:8081',      // Your Keycloak server
-  KEYCLOAK_REALM: 'LorvenAI-realm',           // Your Keycloak database/realm
-  CLIENT_ID: 'LorvenAI-app',                  // Your app registered in Keycloak
-  CLIENT_SECRET: 'your-secret',               // Secret from Keycloak client settings
-  JWT_SECRET: 'your-super-secret-jwt-key'     // Secret for our custom tokens
-};
 
-// ================= MAIN LOGIN ENDPOINT =================
-app.post('/auth/login', limiter, async (req, res) => {
+app.post('/login', limiter, async (req, res) => {
   try {
-    // Extract email/password from frontend request
+    console.log("/login api called");
     const { user_email, user_password } = req.body;
-    
-    // STEP 1: Ask Keycloak to verify credentials (like asking a bouncer)
+
     const tokens = await axios.post(
       `${config.KEYCLOAK_URL}/realms/${config.KEYCLOAK_REALM}/protocol/openid-connect/token`,
-      new URLSearchParams({                    // Keycloak expects form data format
-        grant_type: 'password',                // We're using password login
+      new URLSearchParams({
+        grant_type: 'password',
         client_id: config.CLIENT_ID,
         client_secret: config.CLIENT_SECRET,
         username: user_email,
         password: user_password,
-        scope: 'openid email profile'          // Get user info too
+        scope: 'openid email profile'
       }),
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     );
+    console.log(`tokens expires in  : ${tokens.data.expires_in}`);
 
-    // STEP 2: Get unique user ID from Keycloak token
-    const userId = tokens.data.sub;            // Keycloak user ID (like user123)
-    const cacheKey = `perms:${userId}`;        // Redis key: "perms:user123"
-
-    // STEP 3: Check Redis cache for user permissions (SUPER FAST)
-    let permissions = await redis.get(cacheKey);
-    if (!permissions) {
-      // Cache MISS: Ask Keycloak for user roles/permissions (slower)
-      const userInfo = await axios.get(
-        `${config.KEYCLOAK_URL}/realms/${config.KEYCLOAK_REALM}/protocol/openid-connect/userinfo`,
-        { headers: { Authorization: `Bearer ${tokens.data.access_token}` } }
-      );
-      
-      // Convert Keycloak roles to screen permissions
-      // Example: "cinescribe.screen1.view" → {cinescribe: {screen1: ["view"]}}
-      permissions = mapRolesToScreens(userInfo.data.realm_access?.roles || []);
-      
-      // Cache for 15 minutes (900 seconds) - next login will be instant!
-      await redis.setEx(cacheKey, 900, JSON.stringify(permissions));
-    } else {
-      // Cache HIT: Super fast (1ms vs 100ms)
-      permissions = JSON.parse(permissions);
-    }
-
-    // STEP 4: Create SUPER TOKEN with permissions embedded
+    const decodedToken = jwt.decode(tokens.data.access_token);
+    console.log("decoded token:", decodedToken);
+    const userId = decodedToken.sub;
+    console.log(`userId: ${userId}`);
+    
     const enrichedToken = jwt.sign({
-      sub: userId,                           // User ID
-      permissions,                           // All screen permissions
-      modules: Object.keys(permissions)      // ["cinescribe", "cineflow"]
-    }, config.JWT_SECRET, { expiresIn: '15m' }); // Token expires in 15 min
+      sub: userId,
+      permissions,
+      modules: Object.keys(permissions)
+    }, config.JWT_SECRET, { expiresIn: '15m' });
 
-    // STEP 5: Send response in format your frontend expects
+    //check what is in the access token
+    console.log("access token:",enrichedToken);
     res.json({
-      data: {                                // Matches your FastAPI response structure
+      data: {
         response: {
-          access_token: enrichedToken,       // Frontend stores this in cookie
-          refresh_token: tokens.data.refresh_token, // For token refresh
-          permissions,                       // NEW: Screen access rules
-          modules: Object.keys(permissions)  // NEW: Which modules to show
+          access_token: enrichedToken,
+          refresh_token: tokens.data.refresh_token,
+          permissions,
+          modules: Object.keys(permissions)
         }
       }
     });
 
   } catch (error) {
-    // Login failed (wrong password, etc.)
     console.error('Login failed:', error.response?.data || error.message);
     res.status(401).json({ data: { detail: 'Invalid credentials' } });
   }
 });
 
-// ================= SIGNUP ENDPOINT (placeholder) =================
-app.post('/auth/signup', limiter, async (req, res) => {
-  // TODO: Add your Keycloak user creation logic here
-  // Similar to login but creates new user first
-  res.json({ 
-    data: { 
-      response: { 
-        success: true,
-        access_token: 'signup-token',
-        permissions: {},
-        modules: []
-      } 
-    } 
-  });
-});
-
-// ================= START SERVER =================
-app.listen(3001, () => {
-  console.log('🚀 Auth Middleware running on http://localhost:3001');
-  console.log('✅ Frontend (5173) → Middleware (3001) → Keycloak (8081)');
-});
-
-// ================= UTILITY FUNCTION =================
-function mapRolesToScreens(roles) {
-  /*
-  Converts Keycloak roles like:
-  ["cinescribe.screen1.view", "cinescribe.screen1.create", "cineflow.screen2.view"]
-  
-  Into screen permissions:
-  {
-    cinescribe: {
-      screen1: ["view", "create"]
-    },
-    cineflow: {
-      screen2: ["view"]
-    }
+app.post('/signup',limiter,async (req, res) => {
+  try {
+    console.log("/signup endpoint called...");
+    const {user_email, user_password} = req.body;
+    //Check if the group name exists with that email id part
+    // console.log(`user_email: ${user_email}, user pass: ${user_password}`)
+    // console.log(`email type: ${typeof user_email}`)
+    // console.log(`Checking if user_email ${user_email} exists or not`);
+    const userID = await checkUserExists(user_email);
+    console.log('userId:',userID);
+    if (!userID){
+      const create_user = await createUser(user_email,user_password);
+      console.log('User create :',create_user);
+      const userID = create_user.userId;
+      console.log('userId:',userID);
+      const organization = user_email.split('@')[1].split('.')[0];
+      // console.log('Checking if group ')
+      const organizationExists = await checkGroupExists(organization);
+       console.log("organization exists:",organizationExists);
+      if(!organizationExists){
+        console.log(`Group ${organization} doesn't exist. Creating it...`);
+        const groupCreateResp = await create_group(organization);
+        console.log('Group created:',groupCreateResp);
+         const clientName = `LorvenAI-app-${organization}`;
+         const clientExists = await checkClientExists(clientName);
+         console.log("Client exists :", clientExists);
+        if(!clientExists) {
+          const clientCreateResp = await create_client(clientName,organization);
+          console.log("Client created:",clientCreateResp);
+        }
+        const clientUUID = await getClientId(clientName);
+        console.log('Client Id: ',await clientUUID);
+        const clientRolesCreated = await createClientRoles(clientUUID);
+        console.log('client roles created',await clientRolesCreated);
+        const CompositeRolesCreated = await createCompositeRoles(clientUUID);
+        console.log('Composite roles created : ', await CompositeRolesCreated);
+        console.log(`Checking if any user exists in Group ${organization} ...`);
+        const userExistsInGroupResp = await userExistsInGroup(organization,user_email);
+        console.log('userExistsInGroup response: ',userExistsInGroupResp.userExistsInGroup);
+       const createdUserAdminofGroupResp = await createUserAdminOfGroup(userID,userExistsInGroupResp.groupID);
+       console.log('createdUserAdminofGroupResp:',createdUserAdminofGroupResp);
+     }
+    console.log('returning response...');
+    return res.status(200).json({data:{details: `Confirmation email sent to email ${user_email}. Please click the link in your inbox.`,user_id:userID }});
   }
-  */
+  else {
+    console.log(`User with email ${user_email} already exists.`);
+      return res.status(200).json({data: { detail: 'User with this email already exists',user_id:userID } });
+    }
+}catch (error) {
+    console.error('Signup failed:', error.response?.data || error.message);
+    res.status(400).json({data: { detail: error.response?.data?.errorMessage || 'Signup failed' } 
+    });
+  }
+});
+
+app.post('/intospect', limiter, async (req, res) => {
+  try {
+    console.log("/intospect api called");
+    const {token} = req.body;
+    const introspectResp = await axios.post(
+      `${config.KEYCLOAK_URL}/realms/${config.KEYCLOAK_REALM}/protocol/openid-connect/token/introspect`,
+      new URLSearchParams({
+        token,
+        client_id: config.CLIENT_ID,
+        client_secret: config.CLIENT_SECRET
+      }),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+    );
+    res.json({data: { response: introspectResp.data } });
+  }catch(error){
+    console.error('Introspect failed:', error.response?.data || error.message);
+    res.status(400).json({ data: { detail: 'Introspect failed' } });
+  }
+}
+);
+app.get('/accept-invite/:token',async (req,res) => {
+  try {
+    const {token} = req.params;
+    const data = jwt.verify(token, config.JWT_SECRET);
+
+    //Create user in Keycloak
+    const adminToken = await getAdminToken();
+    await axios.post(`${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/users`, {
+      username : data.email,
+      email: data.email,
+      enabled:true,
+      emailVerified:true,
+      credentials: [{
+        type: 'password',
+        value:data.password,
+        temporary:false
+      }]
+    },{headers: {Authorization: `Bearer ${adminToken}`,'Content-Type':'application/json'}});
+     res.redirect(`http://localhost:5173/dashboard?success=true`);
+  }catch(error){
+    res.send('<h2>Invalid link. Contact support.</h2>')
+  }
+});
+
+// ✅ NEW: Token refresh endpoint
+app.post('/refresh', async (req, res) => {
+  try {
+    const { refresh_token } = req.body;
+    const tokens = await axios.post(
+      `${config.KEYCLOAK_URL}/realms/${config.KEYCLOAK_REALM}/protocol/openid-connect/token`,
+      new URLSearchParams({
+        grant_type: 'refresh_token',
+        client_id: config.CLIENT_ID,
+        client_secret: config.CLIENT_SECRET,
+        refresh_token
+      }),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+    );
+
+    res.json({
+      data: {
+        response: {
+          access_token: tokens.data.access_token,
+          refresh_token: tokens.data.refresh_token
+        }
+      }
+    });
+  } catch (error) {
+    res.status(401).json({ data: { detail: 'Invalid refresh token' } });
+  }
+});
+
+// PERFECT UTILITY FUNCTION ✅
+function mapRolesToScreens(roles) {
   const permissions = {};
   roles?.forEach(role => {
-    if (role.includes('.')) {              // Skip roles without "module.screen.operation"
+    if (role.includes('.')) {
       const [module, screen, operation] = role.split('.');
-      // Only allow your 4 modules
       if (['cinescribe', 'cinesketch', 'cineflow', 'pitchcraft'].includes(module)) {
         permissions[module] = permissions[module] || {};
         permissions[module][screen] = permissions[module][screen] || [];
-        permissions[module][screen].push(operation);
+        if (!permissions[module][screen].includes(operation)) {
+          permissions[module][screen].push(operation);
+        }
       }
     }
   });
   return permissions;
 }
+
+app.listen(3001, () => {
+  console.log('🚀 Auth Middleware running on http://localhost:3001');
+  console.log('✅ Frontend (5173) → Backend (8000)');
+});
