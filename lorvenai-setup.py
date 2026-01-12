@@ -26,15 +26,15 @@ class LovenaiCompleteSetup:
             },
             "Cinesketch": {
                 "screens": 120,
-                "operations": ["view", "create", "update", "delete"]
+                "operations": ["read", "create", "update", "delete"]
             },
             "Cineflow": {
                 "screens": 120,
-                "operations": ["view", "create", "update", "delete"]
+                "operations": ["read", "create", "update", "delete"]
             },
             "Pitchcraft": {
                 "screens": 120,
-                "operations": ["view", "create", "update", "delete"]
+                "operations": ["read", "create", "update", "delete"]
             }
         }
     
@@ -67,27 +67,27 @@ class LovenaiCompleteSetup:
             "Content-Type": "application/json"
         }
     
-    def create_realm(self):
-        """Create the realm"""
-        url = f"{self.server_url}/admin/realms"
-        payload = {
-            "realm": self.realm,
-            "enabled": True,
-            "displayName": "LovenAI Platform",
-            "accessTokenLifespan": 1800,
-            "ssoSessionIdleTimeout": 1800,
-            "ssoSessionMaxLifespan": 36000,
-            "registrationAllowed": False,
-            "loginWithEmailAllowed": True,
-            "duplicateEmailsAllowed": False
-        }
-        resp = requests.post(url, json=payload, headers=self.headers())
-        if resp.status_code == 201:
-            print(f"✓ Realm '{self.realm}' created")
-        elif resp.status_code == 409:
-            print(f"⚠ Realm '{self.realm}' already exists - using existing")
-        else:
-            resp.raise_for_status()
+    # def create_realm(self):
+    #     """Create the realm"""
+    #     url = f"{self.server_url}/admin/realms"
+    #     payload = {
+    #         "realm": self.realm,
+    #         "enabled": True,
+    #         "displayName": "LovenAI Platform",
+    #         "accessTokenLifespan": 1800,
+    #         "ssoSessionIdleTimeout": 1800,
+    #         "ssoSessionMaxLifespan": 36000,
+    #         "registrationAllowed": False,
+    #         "loginWithEmailAllowed": True,
+    #         "duplicateEmailsAllowed": False
+    #     }
+    #     resp = requests.post(url, json=payload, headers=self.headers())
+    #     if resp.status_code == 201:
+    #         print(f"✓ Realm '{self.realm}' created")
+    #     elif resp.status_code == 409:
+    #         print(f"⚠ Realm '{self.realm}' already exists - using existing")
+    #     else:
+    #         resp.raise_for_status()
     
     def create_client(self):
         """Create the client application"""
@@ -158,10 +158,10 @@ class LovenaiCompleteSetup:
         # User management roles
         print(f"  → User Management: 5 roles")
         usermgmt_roles = [
-            ("usermgmt.create-user", "Create new users"),
+            ("usermgmt.create-user", "Create/Invite new users"),
             ("usermgmt.update-user", "Update user information"),
             ("usermgmt.delete-user", "Delete users"),
-            ("usermgmt.assign-role", "Assign roles to users"),
+            ("usermgmt.assign-role", "Assign roles to groups"),
             ("usermgmt.view-users", "View all users")
         ]
         
@@ -173,10 +173,11 @@ class LovenaiCompleteSetup:
         
         elapsed = time.time() - start
         print(f"\n✓ TOTAL: {count} fine-grained roles created in {elapsed:.1f}s")
-        print(f"  • Cinescribe: 480 roles")
-        print(f"  • Cinesketch: 480 roles")
-        print(f"  • Cineflow: 480 roles")
-        print(f"  • Pitchcraft: 480 roles")
+        print(f"  • Director: 480 roles")
+        print(f"  • Producer: 480 roles")
+        print(f"  • Assistant Director-1: 480 roles")
+        print(f"  • Assistant Director-2: 480 roles")
+        print(f"  • Production Manager: 120 roles")
         print(f"  • User Management: 5 roles")
         print(f"  All stored in PostgreSQL: KEYCLOAK_ROLE, CLIENT_ROLE tables")
     
@@ -212,68 +213,97 @@ class LovenaiCompleteSetup:
         """Create all composite business roles"""
         print(f"\n🎭 Creating business roles (composites)...")
         
-        # Cinescribe Writer: create, read, update
-        print("  → Cinescribe_Writer")
-        cinescribe_writer_roles = []
+        # Director: create, read, update
+        print("  → Director")
+        director_roles = []
         for screen in range(1, 121):
-            for action in ["create", "read", "update"]:
-                roles = self.get_roles_by_pattern(f"cinescribe.screen{screen}.{action}")
-                cinescribe_writer_roles.extend(roles)
+            for action in ["create", "read", "update","delete"]:
+                cinescribeRoles = self.get_roles_by_pattern(f"cinescribe.screen{screen}.{action}")
+                director_roles.extend(cinescribeRoles)
+                cinesketchRoles = self.get_roles_by_pattern(f"cinesketch.screen{screen}.{action}")
+                director_roles.extend(cinesketchRoles)
+                pitchcraftRoles = self.get_roles_by_pattern(f"cineflow.screen{screen}.{action}")
+                director_roles.extend(pitchcraftRoles)
+                cineflowRoles = self.get_roles_by_pattern(f"pitchcraft.screen{screen}.{action}")
+                director_roles.extend(cineflowRoles)
+        self.create_composite_role("Director","Full access to all modules (create, read, update, delete)",director_roles)
         
-        self.create_composite_role(
-            "Cinescribe_Writer",
-            "Full write access to all Cinescribe screens (create, read, update)",
-            cinescribe_writer_roles
-        )
-        
-        # Cinescribe Reader: read only
-        print("  → Cinescribe_Reader")
-        cinescribe_reader_roles = []
+        # Producer: read only
+        print("  → Producer")
+        producer_roles = []
         for screen in range(1, 121):
-            roles = self.get_roles_by_pattern(f"cinescribe.screen{screen}.read")
-            cinescribe_reader_roles.extend(roles)
+            cinescribeRoles = self.get_roles_by_pattern(f"cinescribe.screen{screen}.read")
+            producer_roles.extend(cinescribeRoles)
+            cinesketchRoles = self.get_roles_by_pattern(f"cinesketch.screen{screen}.read")
+            producer_roles.extend(cinesketchRoles)
+            cineflowRoles = self.get_roles_by_pattern(f"cineflow.screen{screen}.read")
+            producer_roles.extend(cineflowRoles)
+            pitchcraftRoles = self.get_roles_by_pattern(f"pitchcraft.screen{screen}.read")
+            producer_roles.extend(pitchcraftRoles)
+        self.create_composite_role("Producer","Read-only access to all modules",producer_roles)
         
-        self.create_composite_role(
-            "Cinescribe_Reader",
-            "Read-only access to all Cinescribe screens",
-            cinescribe_reader_roles
-        )
+        # Assistant Director-1
+        print("  → Assistant Director-1")
+        assistant_director_1_roles = []
+        for screen in range(1, 121):
+            for action in ["create", "read"]:
+                cinescribeRoles = self.get_roles_by_pattern(f"cinesketch.screen{screen}.{action}")
+                assistant_director_1_roles.extend(cinescribeRoles)
+                cinesketchRoles = self.get_roles_by_pattern(f"cinesketch.screen{screen}.{action}")
+                assistant_director_1_roles.extend(cinesketchRoles)
+                cineflowRoles = self.get_roles_by_pattern(f"cineflow.screen{screen}.{action}")
+                assistant_director_1_roles.extend(cineflowRoles)
+                pitchcraftRoles = self.get_roles_by_pattern(f"pitchcraft.screen{screen}.{action}")
+                assistant_director_1_roles.extend(pitchcraftRoles)
+        self.create_composite_role("Assistant Director-1","Creat, read access to all modules",assistant_director_1_roles)
         
-        # Cinesketch Full Access
-        print("  → Cinesketch_FullAccess")
-        cinesketch_roles = self.get_roles_by_pattern("cinesketch.screen")
-        self.create_composite_role(
-            "Cinesketch_FullAccess",
-            "Complete access to all Cinesketch screens",
-            cinesketch_roles
-        )
+        # Assistant Director-2
+        print("  → Assistant Director-2")
+        assistant_director_2_roles = []
+        for screen in range(1, 121):
+            cinescribeRoles = self.get_roles_by_pattern(f"cinesketch.screen{screen}.read")
+            assistant_director_2_roles.extend(cinescribeRoles)
+            cinesketchRoles = self.get_roles_by_pattern(f"cinesketch.screen{screen}.read")
+            assistant_director_2_roles.extend(cinesketchRoles)
+            cineflowRoles = self.get_roles_by_pattern(f"cineflow.screen{screen}.read")
+            assistant_director_2_roles.extend(cineflowRoles)
+            pitchcraftRoles = self.get_roles_by_pattern(f"pitchcraft.screen{screen}.read")
+            assistant_director_2_roles.extend(pitchcraftRoles)
+        self.create_composite_role("Assistant Director-2","Read access to all modules",assistant_director_2_roles)
         
-        # Cineflow Editor
-        print("  → Cineflow_Editor")
-        cineflow_roles = self.get_roles_by_pattern("cineflow.screen")
-        self.create_composite_role(
-            "Cineflow_Editor",
-            "Complete access to all Cineflow screens",
-            cineflow_roles
-        )
-        
-        # Pitchcraft Editor
-        print("  → Pitchcraft_Editor")
-        pitchcraft_roles = self.get_roles_by_pattern("pitchcraft.screen")
-        self.create_composite_role(
-            "Pitchcraft_Editor",
-            "Complete access to all Pitchcraft screens",
-            pitchcraft_roles
-        )
+        # Production Manager
+        print("  → Production Manager")
+        production_manager = []
+        for screen in range(1, 121):
+            cinescribeRoles = self.get_roles_by_pattern(f"cinesketch.screen{screen}.read")
+            production_manager.extend(cinescribeRoles)
+            cinesketchRoles = self.get_roles_by_pattern(f"cinesketch.screen{screen}.read")
+            production_manager.extend(cinesketchRoles)
+            cineflowRoles = self.get_roles_by_pattern(f"cineflow.screen{screen}.read")
+            production_manager.extend(cineflowRoles)
+            pitchcraftRoles = self.get_roles_by_pattern(f"pitchcraft.screen{screen}.read")
+            production_manager.extend(pitchcraftRoles)
+        self.create_composite_role("Production Manager","Read access to all modules",production_manager )
         
         # Platform Admin
         print("  → Platform_Admin")
-        admin_roles = self.get_roles_by_pattern("usermgmt.")
-        self.create_composite_role(
-            "Platform_Admin",
-            "User management and role assignment capabilities",
-            admin_roles
-        )
+        platform_admin = self.get_roles_by_pattern("usermgmt.")
+        self.create_composite_role("Platform_Admin","User management and role assignment capabilities",platform_admin)
+
+        #Cinematography
+        print(" → Cinematography")
+        cinematography = []
+        for screen in range(1, 121):
+            for action in ["read", "update"]:
+                cineflowRoles = self.get_roles_by_pattern(f"cineflow.screen{screen}.{action}")
+                cinematography.extend(cineflowRoles)
+                cinescribeRoles = self.get_roles_by_pattern(f"cinescribe.screen{screen}.{action}")
+                cinematography.extend(cinescribeRoles)
+                cinesketchRoles = self.get_roles_by_pattern(f"cinesketch.screen{screen}.{action}")
+                cinematography.extend(cinesketchRoles)
+                pitchcraftRoles = self.get_roles_by_pattern(f"pitchcraft.screen{screen}.{action}")
+                cinematography.extend(pitchcraftRoles)
+        self.create_composite_role( "Cinematography", "Read and update acess to all modules",cinematography)
         
         print(f"\n  All stored in PostgreSQL: COMPOSITE_ROLE table")
     
@@ -282,11 +312,11 @@ class LovenaiCompleteSetup:
         print(f"\n👥 Creating groups...")
         
         groups = [
-            ("Cinescribe Writers", "Cinescribe_Writer", "Content creators for screenplays"),
-            ("Cinescribe Readers", "Cinescribe_Reader", "Reviewers and readers"),
-            ("Cinesketch Artists", "Cinesketch_FullAccess", "Storyboard artists"),
-            ("Cineflow Editors", "Cineflow_Editor", "Production flow managers"),
-            ("Pitchcraft Editors", "Pitchcraft_Editor", "Pitch deck creators"),
+            ("Director", "Director", "Full access to all the modules"),
+            ("Producer", "Producer", "Reviewers and readers"),
+            ("Assistant Director-1", "Assistant Director-1", "Storyboard artists"),
+            ("Assistant Director-2", "Assistant Director-2", "Production flow managers"),
+            ("Production Managers", "Production Manager", "Pitch deck creators"),
             ("Platform Administrators", "Platform_Admin", "System administrators")
         ]
         
@@ -402,7 +432,7 @@ class LovenaiCompleteSetup:
         start_time = time.time()
         
         self.get_admin_token()
-        self.create_realm()
+        # self.create_realm()
         self.create_client()
         self.create_all_roles()
         self.create_all_business_roles()
@@ -440,8 +470,8 @@ if __name__ == "__main__":
     ADMIN_USERNAME = "admin"                     # Admin username
     ADMIN_PASSWORD = "admin@123"                     # Admin password (CHANGE THIS!)
     
-    REALM_NAME = "LorvenAIstudio-realm"                 # Your realm name
-    CLIENT_NAME = "LorvenAIstudio-app"                  # Your client name
+    REALM_NAME = "LorvenAI-realm"                 # Your realm name
+    CLIENT_NAME = "LorvenAI-application"                  # Your client name
     
     CREATE_SAMPLE_USERS = True                   # Set to False to skip user creation
     

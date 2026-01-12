@@ -1,10 +1,17 @@
 const axios = require('axios');
 const config = require('../config');
 const {getAdminToken} = require('../admin_token');
+const fs = require('fs'); //this is used to read, write and update files
+const path = require('path');    //this is used to get the file path
 
+const templateRolesFilePath = path.join('/home/ak/Downloads/LorvenAI-Client-Roles.json');
+const roles = JSON.parse(fs.readFileSync(templateRolesFilePath,'utf-8'));
 
 async function createUserAdminOfGroup(userId, orgGroupId) {
     try {
+        console.log('group id:',orgGroupId);
+        console.log('user id:',userId);
+        console.log(`Inside the createUserAdminOfGroup Function...`);
         const adminToken = await getAdminToken();
          
         // Add user to org group as admin, without content-type because keycloak rejects put request with content-type
@@ -18,59 +25,39 @@ async function createUserAdminOfGroup(userId, orgGroupId) {
         );
         console.log(`addUserToGroup response : ${addUserToGroup.status}, ${addUserToGroup.statusText}`);     //if user added to group returns 204 No Content
 
-        //To add realm-management roles to user get the realm-management client UUID
+        //To add LorvenAI roles to user get the LorvenAI client UUID
         const clients = await axios.get(
-            `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/clients?clientId=realm-management`,
+            `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/clients?clientId=LorvenAI-application`,
             { headers: {Authorization: `Bearer ${adminToken}`}}
         );
         console.log('clients response:',clients.data);
-        const realmManagementClientId = clients.data[0].id;
-        console.log('realm-management client ID:',realmManagementClientId);
+        const LorvenAIAppClientId = clients.data[0].id;
+        console.log('LorvenAI-application client ID:',LorvenAIAppClientId);
 
-        console.log('Checking roles available in realm-management client...');
-        const availableRoles = await axios.get(
-            `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/clients/${realmManagementClientId}/roles`,
-            { headers: { Authorization: `Bearer ${adminToken}` } }
-        );
-        console.log('availableRoles response:',availableRoles);
-        const roleList = availableRoles.data;
-        const map = {};
-        roleList.forEach(role => {
-            //role name and role id 
-            const realmRoles = ['query-groups', 'query-users','manage-users', 'view-users'];
-            for (const roleName of realmRoles){
-                if(role.name === roleName){
-                    map[role.name] = role.id;
-                }
-            }
-        });
-        console.log('Role map:',map);   //has role names with role ids
-        
-        // //assign role-id in map to user
-        for(const roleName in map){
-            try {
-                const roleId = map[roleName];
-                const rolePayload = [{
-                    id : roleId, name: roleName, clientRole: true, containerId : realmManagementClientId
-                }];
-
-                const rolesAssignedToAdmin = await axios.post(
-                    `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/users/${userId}/role-mappings/clients/${realmManagementClientId}`,
-                    rolePayload,
-                    {headers: {Authorization: `Bearer ${adminToken}`,'Content-Type':'application/json'}}
-                );
-                console.log(`Assigned role ${roleName} to user ${userId}:`, rolesAssignedToAdmin.status);  
-            }catch(error){
-                console.error(`Error asigning admin role to user: ${error}, ${error.response?.data}`); //if roles are assigned then 204 no content is returned, else error is logged.
+        //Assigning client roles to user
+        for(const role of roles){
+            // console.log(role.name);
+            if(role.name.startsWith('usermgmt.')){
+                console.log('Admin role is: ',role.name);
+                const rolePayload = [{ id : role.id, name: role.name, clientRole: true, containerId : LorvenAIAppClientId}];
+                try {
+                    const rolesAssignedToAdmin = await axios.post(
+                        `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/users/${userId}/role-mappings/clients/${LorvenAIAppClientId}`,
+                        rolePayload,
+                        {headers: {Authorization: `Bearer ${adminToken}`,'Content-Type':'application/json'}}
+                    );
+                    console.log(` User ${userId} is now admin of org group ${orgGroupId}`);
+                    console.log('rolesAssignedToAdmin response:',rolesAssignedToAdmin.status);
+                    console.log(`Assigned role ${role.name} to user ${userId}:`, rolesAssignedToAdmin.status);  
+                    return rolesAssignedToAdmin.status;
+                }catch(error){
+                    //if roles are assigned then 204 no content is returned, else error is shown.
+                    console.error(`Error asigning admin role ${role.name} to user: `,error, error.response?.data); 
             }
         }
-        const assignRolesResponse = await axios.get(
-            `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/users/${userId}/role-mappings`);
-        console.log('Assign realm roles response:',assignRolesResponse);
-        console.log('Assigned realm roles to user:', assignRolesResponse.data);
-        
-        console.log(` User ${userId} is now admin of org group ${orgGroupId}`);
-    }catch(error){
+        }
+    }
+    catch(error){
         console.error(`Error in createUserAdminOfGroup function: ${error}`);
         return false;
     }
