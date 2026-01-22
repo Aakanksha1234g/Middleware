@@ -2,26 +2,23 @@ const config = require('../config');
 const axios = require('axios');
 const { getAdminToken } = require('../admin_token');
 
-async function create_group(group_name) {
+async function createGroup(group_name) {
     try {
-        console.log('Inside create_group function...');
+        // console.log('Inside create_group function...'); // TODO: Remove debug log
         const adminToken = await getAdminToken();
         const groupCreatedResponse = await axios.post (
             `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/groups`,
             {name: group_name},
-            {headers : {'Authorization': `Bearer ${adminToken}`,
-            'Content-Type': 'application/json'},
-            }
-            );
-            console.log('Group created response:', groupCreatedResponse);
-        // console.log("create group response:",groupCreatedResponse); //consists of status: 201 and statusText:'Created' 
-        console.log("create group response status:",groupCreatedResponse.status);
-        console.log(`Group created response status: ${groupCreatedResponse.status}, statusText: ${groupCreatedResponse.statusText}`);
-        return groupCreatedResponse.status;
+            {headers : {'Authorization': `Bearer ${adminToken}`,'Content-Type': 'application/json'},
+            });
+        
+        console.log('Group created response:', groupCreatedResponse); // TODO: For debugging - remove later
+        console.log(`Group '${group_name}' created successfully. Status: ${groupCreatedResponse.status}. StatusText: ${groupCreatedResponse.statusText}`);        
+        return true; // FIXME: return the status code [after checking]
     }catch(error){
         console.error('Group creation failed:',error.message);
-        return false;
+        return false; // FIXME: return the status code [after checking]
     }
 }
 
-module.exports = {create_group};
+module.exports = {createGroup};

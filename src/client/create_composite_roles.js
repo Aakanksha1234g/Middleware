@@ -1,12 +1,13 @@
 const axios = require('axios');
 const config = require('../config');
+const {getClientUUId} = require('./get_client_id');
 const {getAdminToken} = require('../admin_token');
 const fs = require('fs');   //this is used to read,write and update files
 const path = require('path');  //this is used to get the file path
-const templateRolesFilePath = path.join('/home/ak/Downloads/client_roles_template.json');
+const templateRolesFilePath = path.join('/home/ak/Projects/auth-middleware/Middleware/resources/client_composite_roles_template.json');
 const roles = JSON.parse(fs.readFileSync(templateRolesFilePath,'utf-8'));
 
-const createdCompositeRolesList = [];
+// const createdCompositeRolesList = [];
 async function createCompositeRoles(clientUUID){
     try {
         //default composite roles in the template file are 
@@ -16,64 +17,37 @@ async function createCompositeRoles(clientUUID){
         //Cineflow Editor
         //Pitchcraft Editor
         //Platform Admin
-        console.log(`Creating composite roles for client ${clientUUID}`);
-        console.log('Inside createComposite roles function...');
+        // console.log(`Creating composite roles for client ${clientUUID}`);
         const adminToken = await getAdminToken();
-        const rolesCreatedResponse = await axios.get(
-            `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/clients/${clientUUID}/roles`,
-            {headers : {Authorization: `Bearer ${adminToken}`,'Content-Type':'application/json'}}
-        );
-        console.log('rolesCreatedResponse:',rolesCreatedResponse.status);
-        const map = {};
-        for (const role of roles){
-            map[role.name] = role;
-        }
-        console.log(`The roles in client ${clientUUID} are :`,map);
+        const clientName = `LorvenAI-app`;
+        const defaultClientUUID = await getClientUUId(clientName);
+        const compositePayload = [];       //composite roles
+
         for(const role of roles){
-            if(!role.composites)continue;        //if composite roles are not there then continue
+            for(const childRole of role.composites.client["LorvenAI-app"]){
+                // console.log(`Creating composite role for parent role: ${role.name}, ${childRole}`);
+                console.log("Child role: ", childRole)
+                const clientRoleResponse = await axios.get(
+                    `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/clients/${defaultClientUUID}/roles/${childRole}`,
+                    {headers : {Authorization : `Bearer ${adminToken}`}}
+                );
+                // console.log('response:',clientRoleResponse);     //consists client name, redirect uris, in data role: cinesketch.screen36.delete and its details,
+                compositePayload.push(clientRoleResponse.data);  
             
-            const parentRole = map[role.name];   //if a role has child roles in it then that role is called as parent role, otherwise it is just a role
-            if(!parentRole){
-                console.warn(`${role.name} is not a parent role`);
-                continue;
-            }
-
-            const compositePayload = [];       //composite roles
-            for(const childRoleName of role.composites.client["LorvenAI-app"]){
-                //check the childrole value(e.g. cinescribe.screen1.read in map dictionary and save it in childrole)
-                console.log(`Searching child role: ${childRoleName}`);
-                const childRole = map[childRoleName];
-                console.log(`childRole: ${childRole}, childRoleId: ${childRole.id}`);
-                compositePayload.push({   //store that childrole value in the composite payload
-                    id:childRole.id,
-                    name: childRole.name
-                });     
-            }
-            //if no payload is in the compositepayload then continue
-            if(compositePayload.length == 0) continue;
-            
-            console.log(`Parent role found: ${parentRole}`);
-            //when the compositepayload has child role and name then call the compsoite endpoint and add it in that parent role
-            await axios.post(
-                `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/clients/${clientUUID}/roles/${parentRole.name}/composites`,
-                compositePayload,
-                {headers : {Authorization: `Bearer ${adminToken}`}}
+            const response = await axios.post(
+            `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/clients/${clientUUID}/roles/${role.name}/composites`,
+            compositePayload,
+            {headers : {Authorization: `Bearer ${adminToken}`}}
             );
-            console.log(`Composite role created: ${parentRole.name}`);
 
-            const compositeRolesCreatedResponse = await axios.get(
-                `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/clients/${clientUUID}/roles/${parentRole.name}/composites`,
-                {headers: {Authorization: `Bearer ${adminToken}`}}
-            );
-            console.log(`Composite Roles Created Response: ${compositeRolesCreatedResponse.status}`);
-            if(compositeRolesCreatedResponse.status == 200){
-                createdCompositeRolesList.push(parentRole.name);
-            }
-        }
-        return createdCompositeRolesList;
+            console.log("response.data: ", response.data)
+        } 
+    }
+    return true;
+
     }catch(error){
-        console.error(`Error in creating the composite roles: ${error},${error.message}`);
-        return false;
+        console.error(`Error in creating the composite roles: ${error},${error.message}`,error.response?.data || '');
+        return error.status;
     }
 }
 module.exports = {createCompositeRoles};

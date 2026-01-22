@@ -2,7 +2,7 @@ const axios = require('axios');
 const config = require('./config');
 
 async function getAdminToken() {
-    console.log("inside getadmintoken func...")
+    // console.log("inside getadmintoken func...")
     try { 
         const params = new URLSearchParams();
         params.append( 'client_id',config.ADMIN_CLIENT_ID);
@@ -13,7 +13,7 @@ async function getAdminToken() {
             params,
             {headers: { 'Content-Type': 'application/x-www-form-urlencoded' }}
         );
-        console.log(`response data : ${response.status}`);
+        // console.log(`response data : ${response.status}`);
         return response.data.access_token;
     } catch(error) {
         console.error("Failed to fetch admin token:", error.message);

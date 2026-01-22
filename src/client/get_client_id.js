@@ -2,15 +2,14 @@ const config = require('../config');
 const {getAdminToken} =  require('../admin_token');
 const axios = require('axios');
 
-async function getClientId(client_name){
+async function getClientUUId(clientId){
     //Get clientId
     try {
-        console.log(`Searching clientId of client ${client_name}`);
-        console.log(`Inside getClientId function...`);
+        console.log(`Searching clientId of client ${clientId}`);
         const adminToken = await getAdminToken();
         const getClientIdResponse = await axios.get(
             `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/clients`,
-            {params : {'clientId':client_name},
+            {params : {'clientId':clientId}, // FIXME: Check this
             headers : {Authorization:`Bearer ${adminToken}`,'Content-Type':'application/json'}}
         );
         console.log('Get ClientId response : ',getClientIdResponse.data);
@@ -22,4 +21,4 @@ async function getClientId(client_name){
     }
 }
 
-module.exports = {getClientId};
+module.exports = {getClientUUId};
