@@ -1,15 +1,15 @@
 const config = require('../config');
 const axios = require('axios');
 const {getAdminToken} = require('../admin_token');
-const {getGroupID} = require('../group/get_group_id');
+const {getGroupUUID} = require('./get_group_id');
 
 
-async function userExistsInGroup(organization,user_email){
+async function checkUserExistsInGroup(organization,user_email){
     try {
         console.log(`Checking if the user ${user_email} exists in the group...`);
         console.log(`Inside the userExistsInGroup Function...`);
         const adminToken = await getAdminToken();
-        const groupID = await getGroupID(organization);
+        const groupID = await getGroupUUID(organization);
         console.log(`Group id of ${organization} is ${groupID}`);
 
         const anyUserExistsInGroupResponse = await axios.get(
@@ -29,6 +29,6 @@ async function userExistsInGroup(organization,user_email){
     }
 }
 
-module.exports = {userExistsInGroup};
+module.exports = {checkUserExistsInGroup};
 
 

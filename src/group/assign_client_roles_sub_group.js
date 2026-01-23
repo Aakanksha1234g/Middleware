@@ -1,8 +1,8 @@
 const axios = require('axios');
 const config = require('../config');
-const {getGroupID} = require('../group/get_group_id');
+const {getGroupUUID} = require('../group/get_group_id');
 const {getAdminToken} = require('../admin_token');
-const {getClientUUId} = require('../client/get_client_id');
+const {getClientUUId} = require('../client/get_client_uuid');
 
 async function assignClientRolesToSubGroups(organization_name) {
     try {
@@ -28,7 +28,7 @@ async function assignClientRolesToSubGroups(organization_name) {
          console.log('roles payload:',rolesPayload);
 
         //get the sub-groups with uuid
-        const groupID = await getGroupID(organization_name);
+        const groupID = await getGroupUUID(organization_name);
         const groupsResponse = await axios.get(
             `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/groups/${groupID}/children`,
             {headers: {Authorization: `Bearer ${adminToken}`}}

@@ -1,6 +1,6 @@
 const axios = require('axios');
 const config = require('../config');
-const {getGroupID} = require('../group/get_group_id');
+const {getGroupUUID} = require('../group/get_group_id');
 const {getAdminToken} = require('../admin_token');
 
 
@@ -9,7 +9,7 @@ async function createSubGroups(organization_name) {
         //create these groups
         //Cinescribe Writer, Cinescribe Reader, Cinesketch full access, Cineflow Editor, Pitchcraft Editor, Platform Admin
         
-        const groupID = await getGroupID(organization_name);
+        const groupID = await getGroupUUID(organization_name);
         console.log('group id:',groupID);
         const subGroups = ['Cinescribe_Writer', 'Cinescribe_Reader', 'Cinesketch_FullAccess', 
                             'Cineflow_Editor', 'Pitchcraft_Editor', 'Platform_Admin']

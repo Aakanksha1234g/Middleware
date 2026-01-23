@@ -2,9 +2,9 @@ const config = require('../config');
 const axios = require('axios');
 const {getAdminToken} = require('../admin_token');
 
-async function getGroupID(organization){
+async function getGroupUUID(organization){
     try {
-        // console.log(`Inside the getGroupId Function...`);
+        // console.log(`Inside the getGroupUUId Function...`);
         const adminToken = await getAdminToken();
         const groupResponse = await axios.get(
             `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/groups`,
@@ -22,4 +22,4 @@ async function getGroupID(organization){
     }
 }
 
-module.exports = {getGroupID};
+module.exports = {getGroupUUID};

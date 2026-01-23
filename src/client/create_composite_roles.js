@@ -1,6 +1,6 @@
 const axios = require('axios');
 const config = require('../config');
-const {getClientUUId} = require('./get_client_id');
+const {getClientUUId} = require('./get_client_uuid');
 const {getAdminToken} = require('../admin_token');
 const fs = require('fs');   //this is used to read,write and update files
 const path = require('path');  //this is used to get the file path

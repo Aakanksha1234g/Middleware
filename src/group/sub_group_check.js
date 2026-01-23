@@ -1,12 +1,12 @@
 const config = require('../config');
 const axios = require('axios');
 const {getAdminToken} = require('../admin_token');
-const {getGroupID} = require('../group/get_group_id');
+const {getGroupUUID} = require('../group/get_group_id');
 
 async function checkSubGroupExists(groupName,subGroupName){
     try {
         const adminToken = await getAdminToken();
-        const groupID = await getGroupID(groupName);
+        const groupID = await getGroupUUID(groupName);
         const subGroupExistResponse = await axios.get(
             `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/groups/${groupID}/children?search=${subGroupName}&exact=true&max=1`,
             {

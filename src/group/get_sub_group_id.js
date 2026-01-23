@@ -1,13 +1,13 @@
 const config = require('../config');
 const axios = require('axios');
 const {getAdminToken} = require('../admin_token');
-const {getGroupID} = require('../group/get_group_id');
+const {getGroupUUID} = require('../group/get_group_id');
 
 async function getSubGroupUUID(groupName,subGroupName){
     //GET /admin/realms/{realm}/groups/{group-id}/children
     try {
         const adminToken = await getAdminToken();
-        const groupID = await getGroupID(groupName);
+        const groupID = await getGroupUUID(groupName);
         const subGroupResponse = await axios.get(
             `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/groups/${groupID}/children`,
             {
