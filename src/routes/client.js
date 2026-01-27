@@ -9,3 +9,5 @@ router.post('/create_client_roles',clientController.createClientRoles);
 router.post('/create_client',clientController.createClient);
 router.post('/create_composite_roles',clientController.createCompositeRoles);
 router.get('/get_client_UUId',clientController.getClientUUId);
+
+module.exports = router;

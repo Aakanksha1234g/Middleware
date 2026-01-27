@@ -4,3 +4,5 @@ const signupController = require('../controllers/signup_controller');
 
 //signup endpoint
 router.post('/signup_user',signupController.signup);
+
+module.exports = router;

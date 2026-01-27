@@ -14,3 +14,5 @@ router.get('/group_check',groupController.checkGroupExists);
 router.get('/sub_group_check',groupController.checkSubGroupExists);
 router.get('/user_in_group_check',groupController.checkUserExistsInGroup);
 router.get('/user_in_sub_group_check',groupController.checkUserExistsInSubGroup);
+
+module.exports = router;

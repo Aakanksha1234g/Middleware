@@ -2,7 +2,6 @@
 const {createUser} = require('../user/create_user');
 const {getUserUUID} = require('../user/get_user_uuid');
 const {createUserTempPassword} = require('../user/create_user_temp_pass');
-const {checkUserAdminOfGroup} = require('../user/check_user_admin');
 const {checkUserExists} = require('../user/user_check');
 
 //Create user request
@@ -33,14 +32,14 @@ exports.createUserTempPass = async (req,res) => {
     }
 };
 
-exports.checkUserAdmin = async (req, res) => {
-    try {
-        const userAdminResp = await checkUserAdminOfGroup(req.body);
-        res.status(200).json({success: true, data: userAdminResp});
-    }catch(error){
-        res.status(400).json({success: false, error: error.message});
-    }
-}
+// exports.checkUserAdmin = async (req, res) => {
+//     try {
+//         const userAdminResp = await checkUserAdminOfGroup(req.body);
+//         res.status(200).json({success: true, data: userAdminResp});
+//     }catch(error){
+//         res.status(400).json({success: false, error: error.message});
+//     }
+// }
 
 exports.checkUserExists = async (req, res) => {
     try {
