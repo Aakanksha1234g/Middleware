@@ -61,6 +61,7 @@ async function assignClientRolesToSubGroups(organization_name) {
                 }
             }
         }
+        return true;
     }catch(error){
         console.error('Error in assignClientRolesToSubGroups:',error);
         return error.status;       

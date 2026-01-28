@@ -18,8 +18,8 @@ async function checkUserExists(user_email) {
         return false;
       }
 
-      // console.log("searched user:", searchUser.data); //if user exists then search user.data is an array with user details, else search user is empty
-      // console.log('searched user id:',searchUser.data[0].id);
+       //console.log("searched user:", searchUser.data); //if user exists then search user.data is an array with user details, else search user is empty
+       //console.log('searched user id:',searchUser.data[0].id);
       return true;
 
     } catch(error) {

@@ -4,6 +4,7 @@ const config = require('./config');
 async function login(user_email, user_password){
     try {
         console.log("/login api called...");
+        console.log(`user_email ${user_email}, pass: ${user_password}`);
         const tokens = await axios.post(
             `${config.KEYCLOAK_URL}/realms/${config.KEYCLOAK_REALM}/protocol/openid-connect/token`,
             new URLSearchParams({
@@ -26,8 +27,11 @@ async function login(user_email, user_password){
         }   
     }catch (error) {
     console.error('Login failed:', error?.status, error.response.status, error.response.statusText);
-    res.status(401).json({ message: "Login Failed", data: error.response.status || error.status });
-  }
+    throw {
+    status: error.response.status,
+    message: error.response.data.error_description}
+  };
+    
 }
 
 module.exports = {login};
@@ -120,18 +124,4 @@ module.exports = {login};
 //   next();
 // };
 
-// const extractTokenFromHeader = (req,res,next) => {
-//   const authHeader = req.headers.authorization;
-//   console.log('authHeader:',authHeader);
-//   if(!authHeader){
-//     return res.status(401).json({message:"No authorization header found"});
-//   }
-//   const token = authHeader.split('');
-//   console.log('token:',token); 
-//   if(!token){
-//     return res.status(401).json({message: "Invalid authorization header format"});
-//   }
-//   req.access_token = token;
-//   console.log('req.access_token:',req.access_token);
-//   next();         
-// }
+// 

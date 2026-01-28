@@ -1,3 +1,4 @@
+// FIXME: DELETE THIS FILE
 const {checkGroupExists} = require('./group/group_check');
 const {checkSubGroupExists} = require('./group/sub_group_check');
 const {checkUserExists} = require('./user/user_check');

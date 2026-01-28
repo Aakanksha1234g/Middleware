@@ -13,18 +13,20 @@ const {createSubGroups} = require('./group/create_sub_groups');
 const {assignClientRolesToSubGroups} = require('./group/assign_client_roles_sub_group');
 const {getUserUUID} = require('./user/get_user_uuid');
 
-async function signup(user_email, user_password){
+async function signup(user_email, user_password, organization_name){
     try {
+      console.log('inside signup...');
+      console.log(`user_email ${user_email}, pass: ${user_password}, organization_name: ${organization_name}`);
         // const {user_email, user_password, organization_name} = req.body; //FIXME: keep in production
         const userExists = await checkUserExists(user_email);
 
         if(userExists){
-        return res.status(200).json({message: 'User already exists'});
+        return {message: 'User already exists'};
         }
-        const organization_name = user_email.split('@')[1].split('.')[0]; //FIXME: Remove in production
+        // const organization_name = user_email.split('@')[1].split('.')[0]; //FIXME: Remove in production
         const organizationExists = await checkGroupExists(organization_name);
         if(organizationExists){
-        return res.status(200).json({message: `Organization with name ${organization_name} already exists.`});
+        return {message: `Organization with name ${organization_name} already exists.`};
         }
 
         const userCreated = await createUser(user_email,user_password);
@@ -60,11 +62,12 @@ async function signup(user_email, user_password){
         const userUUID = await getUserUUID(user_email);
         console.log('User UUID: ',userUUID);
 
-        return res.status(200).json({message: "User registered successfully", data: {userId: userUUID}});
+        return {message: "User registered successfully", data: {userId: userUUID}};
     }catch (error) {
-    console.error('Signup failed:', error.response?.data || error.message);
-    res.status(400).json({message: "User registration unsuccessful", data: error.response?.data?.errorMessage || 'Signup failed' 
-    });
+      console.error('error in signup',error);
+      console.error('Signup failed:', error.response.data || error.message);
+
+      // throw { status: error.response.status, message: error.response.data.error_description}
   }
 }
 module.exports = {signup};
