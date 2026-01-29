@@ -26,7 +26,7 @@ cd /Projects/keycloak
 bin/kc.sh bootstrap-admin user
 ```
 
-Provide details in prompt: 
+Provide details in prompt:
 
 * username
 * password
@@ -34,15 +34,15 @@ Provide details in prompt:
 Note :
 
 1. These credentials are admin credentials.
-1. In **Keycloak UI**, in masters **realm** under **Users** tab a user will be created with these credentials.
-1. Never delete this user. If this user is deleted then UI will show sign in error and again from terminal it would be necessary to create admin user.
-1. To create admin user:
+2. In **Keycloak UI**, in masters **realm** under **Users** tab a user will be created with these credentials.
+3. Never delete this user. If this user is deleted then UI will show sign in error and again from terminal it would be necessary to create admin user.
+4. To create admin user:
+
    * ```bash
      export KC_BOOTSTRAP_ADMIN_USERNAME=admin
      echo $KC_BOOTSTRAP_ADMIN_USERNAME
      export KC_BOOTSTRAP_ADMIN_PASSWORD=admin@123
      ```
-
 5. Start the server:
 
 ```bash
@@ -76,7 +76,7 @@ http://<pc-ip>:8081
 
 #### Connect Keycloak 26.0.0 with Postgresql
 
-###### Install Postgresql 
+###### Install Postgresql
 
 ```bash
 sudo apt update
