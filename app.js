@@ -47,8 +47,8 @@ redis.connect().catch(console.error);
   app.use('/signup',signupRoute);
   app.use('/refresh',refreshRouter);
   app.use('/modifyUserGroup',authorizeAdmin, modifyUserGroup);
-  app.use('/createUser',authorizeAdmin, createUserRouter);  //giving error as 431(express error: token size is large.
-  // app.use('/deleteUserSubGroup', deleteUserGroupRouter);
+  app.use('/createUser',authorizeAdmin, createUserRouter);  //giving error as 431(express error: token size is large.)
+  app.use('/deleteUserSubGroup', deleteUserGroupRouter);
 
 app.listen(3001, () => {
   console.log('🚀 Auth Middleware running on http://localhost:3001');

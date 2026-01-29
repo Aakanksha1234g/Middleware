@@ -10,14 +10,14 @@ async function addUserToSubGroup(userEmail,groupName,subGroupName){
         const adminToken = await getAdminToken();
         // PUT /admin/realms/{realm}/users/{user-id}/groups/{groupId}
         const userUUID = await getUserUUID(userEmail);
-        const subGroupID = await getSubGroupUUID(groupName, subGroupName);
+        const subGroupUUID = await getSubGroupUUID(groupName, subGroupName);
         // Add user to org group as admin, without content-type because keycloak rejects put request with content-type
         //if only headers also the user doesnt get added to group
         // so adding null which means no body which will add user to group
         //in place of null, {} can be used and we will get keycloak response as 204 No Content
 
         const addUserToSubGroupResponse = await axios.put(
-            `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/users/${userUUID}/groups/${subGroupID}`,
+            `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/users/${userUUID}/groups/${subGroupUUID}`,
             null,                                   
             {headers: {Authorization : `Bearer ${adminToken}`}}
         );

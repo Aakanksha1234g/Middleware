@@ -4,6 +4,7 @@ const axios = require('axios');
 
 async function checkGroupExists(organization) {
     try {
+        console.log('inside checkGroupExists function...');
         const adminToken = await getAdminToken();
         const groupExistsResponse = await axios.get(
         `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/groups?search=${organization}&exact=true&max=1`,
@@ -11,11 +12,11 @@ async function checkGroupExists(organization) {
             headers: {'Authorization' : `Bearer ${adminToken}`},
         }
         );
-        // console.log('groupsExistsResponse:',groupExistsResponse); //consists headers, adminToken,url,data:[]
+         console.log('groupsExistsResponse:',groupExistsResponse); //consists headers, adminToken,url,data:[]
         const group = groupExistsResponse.data;  //this is an array which has searched group info
         // console.log("group check response data:",group); 
         const groupExists = group.some(group => group.name === organization);  //has true/false value
-        // console.log(`Group ${organization} exists:`, groupExists);
+        console.log(`Group ${organization} exists:`, groupExists);
         
         return groupExists;
     } catch(error) {

@@ -8,8 +8,12 @@ const {sendResetPasswordEmail} = require('../email/reset_password_mail');
 async function createUser(req, res) {
   console.log('inside createUser function..');
     const { user_email, tempPassword, groupName, subGroupName } = req.body;
+    console.log('req body',req.body);
+    console.log('user_email',user_email);
+    console.log('temp pass:',tempPassword);
+    console.log('group name:',groupName);
+    console.log('sub group name:',subGroupName);
     try{
-    
       const organizationExists = await checkGroupExists(groupName);
       if(!organizationExists){
         return res.status(403).json({message: `Organization ${groupName} doesn't exist.`});  //200- group exists, 403- doesn't exist
