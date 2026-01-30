@@ -1,7 +1,7 @@
 const axios = require('axios');
 const config = require('../config');
-const {getAdminToken} = require('../admin_token');
-const { getUserUUID } = require('../user/get_user_uuid');
+const {getAdminToken} = require('../controllers/utils');
+const { getUserUUID } = require('../controllers/utils');
 
 async function sendResetPasswordEmail(user_email){
     try {

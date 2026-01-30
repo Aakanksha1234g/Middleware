@@ -1,7 +1,7 @@
-const {checkUserExists} = require('../user/user_check');
-const {checkSubGroupExists} = require('../group/sub_group_check');
-const {checkUserExistsInSubGroup} = require('../group/user_in_sub_group_check');
-const {addUserToSubGroup} = require('../group/add_user_in_sub_group');
+const { checkUserExists } = require('./utils');
+const {checkSubGroupExists} = require('./group_utils');
+const {checkUserExistsInSubGroup} = require('./group_utils');
+const {addUserToSubGroup} = require('./group_utils');
 
 async function modifyUserGroup(user_email, groupName, subGroupName){
     try {

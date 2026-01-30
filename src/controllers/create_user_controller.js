@@ -1,11 +1,11 @@
-const {checkGroupExists} = require('../group/group_check');
-const {checkSubGroupExists} = require('../group/sub_group_check');
-const {checkUserExists} = require('../user/user_check');
-const {createUserTempPassword} = require('../user/create_user_temp_pass');
-const {addUserToSubGroup} = require('../group/add_user_in_sub_group');
+const {checkGroupExists} = require('./utils');
+const {checkSubGroupExists} = require('./group_utils');
+const {checkUserExists} = require('./utils');
+const {createUserTempPassword} = require('./user_utils');
+const {addUserToSubGroup} = require('./group_utils');
 const {sendResetPasswordEmail} = require('../email/reset_password_mail');
 
-async function createUser(req, res) {
+async function createUserWithTempPassword(req, res) {
   console.log('inside createUser function..');
     const { user_email, tempPassword, groupName, subGroupName } = req.body;
     console.log('req body',req.body);
@@ -47,5 +47,5 @@ async function createUser(req, res) {
 }
 
 module.exports = {
-    createUser
+    createUserWithTempPassword
 }

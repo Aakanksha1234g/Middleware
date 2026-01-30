@@ -1,6 +1,6 @@
 const axios = require('axios');
 const config = require('../config');
-const {getAdminToken} = require('../admin_token');
+const {getAdminToken} = require('../controllers/utils');
 
 async function authorizeAdmin(req, res, next){
   console.log('inside authorizeAdmin function..');
@@ -29,7 +29,7 @@ async function authorizeAdmin(req, res, next){
        payload,
        {headers:{'Authorization':`Bearer ${adminToken}`, 'Content-Type':'application/x-www-form-urlencoded'},
     });
-    // console.log('tokenIntrospectResponse :',tokenIntrospectResponse);
+    console.log('tokenIntrospectResponse :',tokenIntrospectResponse);
     console.log('tokenIntrospectResponse data :',tokenIntrospectResponse.data);  //this gives {active: false} if the token is inactive
     // const tokenExpiresIn = tokenIntrospectResponse.data.exp - tokenIntrospectResponse.data.iat;
     // console.log(`Token expires in : ${tokenExpiresIn}`);
@@ -44,7 +44,7 @@ async function authorizeAdmin(req, res, next){
     console.log("user perms -----", userPerms)
 
     const applicationRoles = userPerms['LorvenAI-application'].roles;
-    console.log('application roles:',applicationRoles);
+    // console.log('application roles:',applicationRoles);
     const isAdmin =  requiredRoles.every(role => applicationRoles.includes(role));
     console.log('isadmin:',isAdmin);
     if (!isAdmin) {

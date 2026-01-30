@@ -1,7 +1,7 @@
-const {checkUserExists} = require('../user/user_check');
-const {checkSubGroupExists} = require('../group/sub_group_check');
-const {checkUserExistsInSubGroup} = require('../group/user_in_sub_group_check');
-const {deleteUserFromTheSubGroup} = require('../group/delete_user_from_sub_group');
+const {checkUserExists} = require('./utils');
+const {checkSubGroupExists} = require('./group_utils');
+const {checkUserExistsInSubGroup} = require('./group_utils');
+const {deleteUserFromTheSubGroup} = require('./group_utils');
 
 async function deleteUserFromSubGroup(user_email, groupName, subGroupName){
     try {
@@ -25,7 +25,7 @@ async function deleteUserFromSubGroup(user_email, groupName, subGroupName){
         }
 
         const deleteUserFromSubGroupResponse = await deleteUserFromTheSubGroup(user_email,groupName,subGroupName);
-        console.log('deleteUserFromSubGroupResponse: ',deleteUserFromSubGroupResponse);
+        console.log('deleteUserFromSubGroupResponse .. : ',deleteUserFromSubGroupResponse);
         return deleteUserFromSubGroupResponse;
 
     }catch(error){
@@ -44,7 +44,9 @@ async function deleteUserSubGroup(req,res){
         const sub_group_name = req.body.sub_group_name;
         const deleteUserSubGroupResp = await deleteUserFromSubGroup(user_email,group_name, sub_group_name);
         console.log('deleteUserGroupResponse: ',deleteUserSubGroupResp);
-        if(deleteUserSubGroupResp === true){
+        // console.log('deleteuserGroupResponse.success type:', typeof deleteUserSubGroupResp.success);
+        if(deleteUserSubGroupResp.success === true){
+            console.log('...');
             return res.status(200).json({success: true, data: deleteUserSubGroupResp.message})
         }
         return res.status(200).json({success: false, data: deleteUserSubGroupResp.messsage});
