@@ -12,7 +12,6 @@ const config = {
   KEYCLOAK_DEFAULT_REALM : process.env.KEYCLOAK_DEFAULT_REALM,
   KEYCLOAK_ADMIN_USER : process.env.KEYCLOAK_ADMIN_USER,
   KEYCLOAK_ADMIN_USER_PASSWORD : process.env.KEYCLOAK_ADMIN_USER_PASSWORD,
-  REDIRECT_URI : process.env.REDIRECT_URI,
 };
 
 module.exports = config;

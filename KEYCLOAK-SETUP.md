@@ -13,37 +13,31 @@ java -version
 ```bash
 mkdir Projects
 cd Projects 
-sudo wget https://github.com/keycloak/keycloak/releases/download/26.0.0/keycloak-26.4.1.tar.gz
+sudo wget https://github.com/keycloak/keycloak/releases/download/26.4.1/keycloak-26.4.1.tar.gz
 sudo tar -xvzf keycloak-26.4.1.tar.gz
 sudo mv keycloak-26.4.1 keycloak
-sudo chown -R $USER:$USER /Projects/keycloak
+cd ..
+sudo chown -R $USER:$USER ~/Projects/keycloak       or          sudo chown -R $USER:$USER /<add the absolute path here>
 ```
 
 #### Create Admin User
 
 ```bash
-cd /Projects/keycloak
-bin/kc.sh bootstrap-admin user
+cd ~/Projects/keycloak
+./bin/kc.sh bootstrap-admin user
 ```
 
 Provide details in prompt:
 
-* username
-* password
+* Enter username :
+* Enter password :
+* lEnter password again :
 
 Note :
 
-1. These credentials are admin credentials.
+1. These credentials are admin credentials. Never delete them. If they are deleted from UI, check Issues section to create the admin user.
 2. In **Keycloak UI**, in masters **realm** under **Users** tab a user will be created with these credentials.
-3. Never delete this user. If this user is deleted then UI will show sign in error and again from terminal it would be necessary to create admin user.
-4. To create admin user:
-
-   * ```bash
-     export KC_BOOTSTRAP_ADMIN_USERNAME=admin
-     echo $KC_BOOTSTRAP_ADMIN_USERNAME
-     export KC_BOOTSTRAP_ADMIN_PASSWORD=admin@123
-     ```
-5. Start the server:
+3. Start the server:
 
 ```bash
 ./bin/kc.sh start-dev
@@ -138,3 +132,43 @@ Provide the credentials used at the time of creating the admin user.
 ```bash
 ./bin/kc.sh start-dev
 ```
+
+### Issues
+
+1. While using the following command
+
+   ```bash
+   bin/kc.sh bootstrap-admin user
+   ```
+
+   warning is displayed:
+
+   Warning: Usage of the default value of the db option in the production......
+
+   After a minute or two prompt is displayed asking for username and password.
+
+   After providing username and password, start the server.
+
+   ```bash
+   ./bin/kc.sh start-dev
+   ```
+
+   On Keycloak UI  a Yellow Line will be displayed on the top saying
+
+   "You are logged in as a temporary admin user. To harden security ,create a permanent admin account and delete the temporary one"
+
+   This can be ignored in development mode but in production mode this error should be resolved.
+
+   **Resolution:**
+2. After creating the user if the user is mistakenly deleted from the UI
+
+* Then UI will show sign in error and again from terminal it would be necessary to create admin user.
+* To create admin user:
+
+  * ```bash
+    export KC_BOOTSTRAP_ADMIN_USERNAME=admin
+    echo $KC_BOOTSTRAP_ADMIN_USERNAME
+    export KC_BOOTSTRAP_ADMIN_PASSWORD=admin@123
+    ```
+
+  Then start the server :    ./bin/kc.sh start-dev

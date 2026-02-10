@@ -115,26 +115,32 @@ async function createCompositeRoles(clientUUID){
         const adminToken = await getAdminToken();
         const clientName = `LorvenAI-application`;
         const defaultClientUUID = await getClientUUId(clientName);
-        const compositePayload = [];       //composite roles
+        let compositePayload = [];       //composite roles
 
         for(const role of compositeRoles){
+            // console.log(role.name)
+            compositePayload = []; 
             for(const childRole of role.composites.client["LorvenAI-application"]){
+                
                 // console.log(`Creating composite role for parent role: ${role.name}, ${childRole}`);
-                console.log("Child role: ", childRole)
+                // console.log("Child role: ", childRole);
                 const clientRoleResponse = await axios.get(
                     `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/clients/${defaultClientUUID}/roles/${childRole}`,
                     {headers : {Authorization : `Bearer ${adminToken}`}}
                 );
+                // if(role.name == "Platform_Admin") {
+                //     console.log('response:',clientRoleResponse.data);     //consists client name, redirect uris, in data role: cinesketch.screen36.delete and its details,
+                // }
+                compositePayload.push(clientRoleResponse.data);
                 // console.log('response:',clientRoleResponse);     //consists client name, redirect uris, in data role: cinesketch.screen36.delete and its details,
-                compositePayload.push(clientRoleResponse.data);  
-            
+                // compositePayload.push(clientRoleResponse.data);  
+            // console.log('composite payload...',compositePayload);
             const response = await axios.post(
             `${config.KEYCLOAK_URL}/admin/realms/${config.KEYCLOAK_REALM}/clients/${clientUUID}/roles/${role.name}/composites`,
             compositePayload,
             {headers : {Authorization: `Bearer ${adminToken}`}}
             );
-
-            console.log("response.data: ", response.data)
+            // console.log("response.data: ", response.data);
         } 
     }
     return true;
