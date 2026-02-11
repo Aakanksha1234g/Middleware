@@ -2,8 +2,6 @@
 
 This is the middleware which checks user authentication and provides authorization.
 
-
-
 ##### Features
 
 ```md
@@ -69,7 +67,7 @@ Git = 2.43.0
 
 ##### Installation
 
-[Kecyloak setup](/home/ak/Projects/auth-middleware/Middleware/KEYCLOAK-SETUP.md) file has all the steps required for installation of Keycloak in Ubuntu.
+[Kecyloak setup](/Middleware/KEYCLOAK-SETUP.md) file has all the steps required for installation of Keycloak in Ubuntu.
 
 ##### Usage
 
