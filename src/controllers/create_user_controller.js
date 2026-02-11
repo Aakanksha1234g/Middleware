@@ -6,7 +6,7 @@ const {addUserToSubGroup} = require('./group_utils');
 const {sendResetPasswordEmail} = require('../email/reset_password_mail');
 
 async function createUserWithTempPassword(req, res) {
-  console.log('inside createUser function..');
+    console.log('inside createUser function..');
     const { user_email, tempPassword, groupName, subGroupName } = req.body;
     console.log('req body',req.body);
     console.log('user_email',user_email);

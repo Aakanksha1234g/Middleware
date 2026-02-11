@@ -49,14 +49,14 @@ async function signup(req,res){
         const CompositeRolesCreated = await createCompositeRoles(clientUUID);
         console.log('Composite roles created : ',CompositeRolesCreated);
 
-        // const adminRolesAssigned = await createUserAdminOfGroup(user_email,organization_name);
-        // console.log('admin roles assigned:',adminRolesAssigned);
+        const adminRolesAssigned = await createUserAdminOfGroup(user_email,organization_name);
+        console.log('admin roles assigned:',adminRolesAssigned);
         
-        // const subGroupsCreated = await createSubGroups(organization_name);
-        // console.log('sub groups created:',subGroupsCreated);
+        const subGroupsCreated = await createSubGroups(organization_name);
+        console.log('sub groups created:',subGroupsCreated);
 
-        // const clientRolesAssignedToSubGroups = await assignClientRolesToSubGroups(organization_name);
-        // console.log('client roles assigned to group:',clientRolesAssignedToSubGroups);
+        const clientRolesAssignedToSubGroups = await assignClientRolesToSubGroups(organization_name);
+        console.log('client roles assigned to group:',clientRolesAssignedToSubGroups);
 
         const userUUID = await getUserUUID(user_email);
         console.log('User UUID: ',userUUID);

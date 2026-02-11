@@ -58,8 +58,7 @@ async function createUserAdminOfGroup(user_email,organization_name) {
       const userID = searchUser.data[0].id;
       console.log('userID:',userID);
       
-      // Add user to org group as admin, without content-type because keycloak rejects put request with content-type
-        //with only headers also the user doesnt get added to group
+        //With only headers and url also the user doesnt get added to group
         // so adding null which means no body which will add user to group
         //in place of null, {} can be used and we will get keycloak response as 204 No Content
       console.log('adding user to the group...');

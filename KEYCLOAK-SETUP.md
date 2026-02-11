@@ -1,4 +1,4 @@
-### Steps to install Keycloak
+## Steps to install Keycloak
 
 #### Install Java (Keycloak runs on JVM)
 
@@ -26,8 +26,6 @@ sudo chown -R $USER:$USER ~/Projects/keycloak       or          sudo chown -R $U
 cd ~/Projects/keycloak
 ./bin/kc.sh bootstrap-admin user
 ```
-
-Provide details in prompt:
 
 * Enter username :
 * Enter password :
@@ -133,42 +131,223 @@ Provide the credentials used at the time of creating the admin user.
 ./bin/kc.sh start-dev
 ```
 
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+## Keycloak UI setup
+
+On browser : http://localhost:8080
+
+### Create Realm
+
+1. On the left panel under Manage realms tab.
+2. Click create realm.
+3. Realm name : LorvenAI-realm
+4. Enabled :ON
+5. Click create.
+6. You will be redirected to the LorvenAI-realm page.
+7. Under Manage realms under LorvenAI-realm (Current realm) will be displayed. This means that you are under LorvenAI-realm and all the users,groups,etc will be displayed of that realm only.
+
+### Create Client
+
+1. On the left panel under Clients tab.
+2. Click on create client.
+3. Client ID: LorvenAI-application
+4. Name : LorvenAI-application
+5. Click Next.
+6. Client Authentication : ON
+7. Authorization : ON
+8. Authentication flow :
+
+   1. Standard flow : ON
+   2. Direct Access Grants : ON
+9. Click Next.
+10. Valid redirect URIs:
+
+    1. Frontend IP :
+       1. http://localhost:5173/*
+       2. Click on (+) to add the IPs
+       3. http://127.0.0.1:5173/*
+    2. Backend IP:
+       1. http://localhost:8000/*
+       2. http://127.0.0.1:8000/*
+    3. Middleware IP:
+       1. http://localhost:3001/*
+       2. http://127.0.0.1:3001/*
+11. Web origins:
+
+    1. http://localhost:5173
+    2. http://127.0.0.1:5173
+    3. http://localhost:8000
+    4. http://127.0.0.1:8000
+    5. http://localhost:3001
+    6. http://127.0.0.1:3001
+
+### Client scopes
+
+**Assigned type:**
+
+1. Default :
+   1. arc
+   2. basic
+   3. email
+   4. profile
+   5. roles
+   6. web-origins
+2. Optional :
+   1. address
+   2. microprofile-jwt
+   3. offline_access
+   4. organization
+   5. phone
+   6. role_list
+3. None :
+   1. saml_organization
+   2. service_account
+
+**Changes per client scope:**
+
+1. address :
+
+   1. Settings tab : Include in token scope : OFF
+2. microprofile-jwt :
+
+   1. Settings tab : Include in token scope : OFF
+3. organization :
+
+   1. Settings tab : Include in token scope : OFF
+4. phone :
+
+   1. Settings tab : Include in token scope : OFF
+5. profile :
+
+   1. Mappers : Keep "username", "profile" and "updated at" and delete rest of the mappers.
+6. roles :
+
+   1. Mappers :
+      1. audience resolve :
+
+         1. Add to lightweight access token : ON
+         2. Click save.
+      2. client roles :
+
+         1. Add to access token : OFF
+         2. Add to lightweight access token : ON
+         3. Click save.
+      3. realm roles :
+
+         1. Add to access token : OFF
+         2. Add to lightweight access token : ON
+         3. Click save.
+
+### Events
+
+1. In the events description click on Event configs you will be redirected to Events Tab.
+2. In Events -> User events settings -> Save events : ON
+3. Click save.
+4. Now the user events will be visible in Events tab.
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 ### Issues
 
-1. While using the following command
+**Issue -1 :** 
+
+*On Keycloak UI  a Yellow Line will be displayed on the top saying*
+
+ *"You are logged in as a temporary admin user. To harden security ,create a permanent admin account and delete the temporary one"*
+
+* While using the following command
+
+```bash
+bin/kc.sh bootstrap-admin user
+```
+
+    warning is displayed:
+
+    Warning: Usage of the default value of the db option in the production......
+
+    After a minute or two prompt is displayed asking for username and password.
+
+    After providing username and password, start the server.
+
+```bash
+./bin/kc.sh start-dev
+```
+
+    On Keycloak UI  a Yellow Line will be displayed on the top saying
+
+    "You are logged in as a temporary admin user. To harden security ,create a permanent admin account and delete the temporary one"
+
+    This can be ignored in development mode but in production mode this error should be resolved.
+
+**
+    Resolution:**
+
+```bash
+cd ~/Projects/keycloak/bin
+./kcadm.sh start-dev --http-relative-path=/auth
+```
+
+    Keep this terminal open and open new terminal.
+
+1. Login with temp-admin account created :
 
    ```bash
-   bin/kc.sh bootstrap-admin user
+   ./kcadm.sh config credentials --server http://localhost:8080/auth --realm master --user admin
    ```
-
-   warning is displayed:
-
-   Warning: Usage of the default value of the db option in the production......
-
-   After a minute or two prompt is displayed asking for username and password.
-
-   After providing username and password, start the server.
+2. Create new user:
 
    ```bash
-   ./bin/kc.sh start-dev
+   ./kcadm.sh create users -r master -s username=admin_user -s enabled=true -s emailVerified=true
+   ```
+3. Set password:
+
+   ```bash
+   ./kcadm.sh set-password -r master --username admin_user --new-password "admin_user@123"
+   ```
+4. Assign admin role to the user:
+
+   ```bash
+   ./kcadm.sh add-roles -r master --uusername admin_user --rolename admin
+   ```
+5. Check the user :
+
+   ```bash
+   ./kcadm.sh get users -r master -q username=admin_user
    ```
 
-   On Keycloak UI  a Yellow Line will be displayed on the top saying
+   User credentials will be displayed like user UUID, username, emailVerified,etc.
+6. Login with the new user details on UI.
+7. Check the temp-user details:
 
-   "You are logged in as a temporary admin user. To harden security ,create a permanent admin account and delete the temporary one"
+   ```bash
+   ./kcadm.sh get users -r master -q username=admin
+   ```
 
-   This can be ignored in development mode but in production mode this error should be resolved.
+   Copy the temp-user UUID.
+8. Delete the temp-user:
 
-   **Resolution:**
-2. After creating the user if the user is mistakenly deleted from the UI
+   ```bash
+   ./kcadm.sh delete users/<temp-user-uuid> -r master
+   ```
 
-* Then UI will show sign in error and again from terminal it would be necessary to create admin user.
-* To create admin user:
+   E.g.
 
-  * ```bash
-    export KC_BOOTSTRAP_ADMIN_USERNAME=admin
-    echo $KC_BOOTSTRAP_ADMIN_USERNAME
-    export KC_BOOTSTRAP_ADMIN_PASSWORD=admin@123
-    ```
+   ```bash
+   ./kcadm.sh delete users/b399e34e-4f1b-4329-a76e-6bd457274488 -r master
+   ```
+9. The yellow line issue gets resolved.
 
-  Then start the server :    ./bin/kc.sh start-dev
+**Issue -2 :**
+
+* *After creating the user if the user is mistakenly deleted from the UI:*
+
+  ```md
+
+  * Then UI will show sign in error and again from terminal it would be necessary to create admin user.
+  * To create admin user:
+  	1. export KC_BOOTSTRAP_ADMIN_USERNAME=admin
+  	2. echo $KC_BOOTSTRAP_ADMIN_USERNAME
+  	3. export KC_BOOTSTRAP_ADMIN_PASSWORD=admin@123
+  * Start the server : ./bin/kc.sh start-dev
+  ```
