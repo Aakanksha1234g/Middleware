@@ -51,7 +51,7 @@ Login : 9e546b001@smtp-brevo.com
 
 
 
-The email sent to the user will look like this:  [Email sent to user](Email sent to the user screenshot.png)
+The email sent to the user will look like this:  [Email_sent_to_user](/home/ak/Projects/auth-middleware/Middleware/Email sent to the user screenshot.png)
 
 
 ## **Organization Admin Roles :**
