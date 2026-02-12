@@ -41,13 +41,18 @@ Login : 9e546b001@smtp-brevo.com
 6. **Authentication** **type**:  password
 7. **Password**:  bskKrlIu5XeM93j                              // SMTP key
 8. **Encryption**:
+
    1. Disable  SSL.
    2. Enable StartTLS.
 
-    Note : The SSLException`Unsupported or unrecognized SSL message` is exactly what you get when you use SSL.
-
+   Note : The SSLException `Unsupported or unrecognized SSL message` is exactly what you get when you use SSL.
 9. Disable Allow UTF‑8.
 10. Click Test connection.
+
+
+
+The email sent to the user will look like this:  [Email sent to user](Email sent to the user screenshot.png)
+
 
 ## **Organization Admin Roles :**
 
