@@ -239,12 +239,41 @@ On browser : http://localhost:8080
          2. Add to lightweight access token : ON
          3. Click save.
 
+Rest all changes per client scope should be unchanged.
+
 ### Events
 
 1. In the events description click on Event configs you will be redirected to Events Tab.
 2. In Events -> User events settings -> Save events : ON
 3. Click save.
 4. Now the user events will be visible in Events tab.
+
+### Realm settings
+
+1. Email tab :
+
+   1. Template:
+      1. From : aakanksha@thequantum.ai
+   2. Connection and Authentication :
+      1. Host : smtp-relay.brevo.com
+      2. Port : 587
+      3. Encryption :
+         1. Enable SSL : OFF
+         2. Enable StartTLS : ON
+      4. Authentication : Enabled : ON
+      5. Username : 9e546b001@smtp-brevo.com
+      6. Authentication Type : Password
+      7. Password : bskKrlIu5XeM93j            (paste this password in a terminal then alphabets after 'r' will be clearly displayed.)
+2. User Profile :
+
+   1. Atrributes : Users are getting created with username and email therefore delete firstName and lastName attributes.
+
+### Authentication
+
+To accept the username and password from login form.
+
+Flows -> browser -> forms -> Username Password Form ( should be set to required).
+
 
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -337,6 +366,7 @@ cd ~/Projects/keycloak/bin
    ./kcadm.sh delete users/b399e34e-4f1b-4329-a76e-6bd457274488 -r master
    ```
 9. The yellow line issue gets resolved.
+
 
 **Issue -2 :**
 
