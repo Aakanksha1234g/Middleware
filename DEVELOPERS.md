@@ -49,16 +49,74 @@ Login : 9e546b001@smtp-brevo.com
 9. Disable Allow UTF‑8.
 10. Click Test connection.
 
-
-
 The email sent to the user will look like this:  [Email_sent_to_user](Email_sent_to_the_user_screenshot.png) .
-
 
 ## **Organization Admin Roles :**
 
 ```bash
-query-groups - List groups
-query-users - Search users
-manage-users - Create/invite users to their org group
-view-users - View group members
+Platform_Admin
+usermgmt.assign-role
+usermgmt.view-users
+usermgmt.update-user
+usermgmt.delete-user
+usermgmt.create-user
 ```
+
+#### To delete client :
+
+On terminal :
+
+1. Login with admin credentials :
+   ```bash
+   ./bin/kcadm.sh config credentials \
+     --server http://localhost:8081 \
+     --realm master \
+     --user admin \
+     --password admin_password
+
+   E.g. ./bin/kcadm.sh config credentials \
+     --server http://localhost:8081 \
+     --realm master \
+     --user admin \
+     --password admin@123
+
+   ```
+2. Get the clients of the realm :
+
+```bash
+./bin/kcadm.sh get clients -r yourrealm
+
+E.g: ./bin/kcadm.sh get clients -r LorvenAI-realm
+```
+
+This command will display the list of clients with their respective details.
+
+Do not delete the following default clients : realm-management, account, admin-cli
+
+1. realm-management
+2. account
+3. admin-cli
+4. account-console
+5. broker
+6. realm-management
+7. security-admin-console
+
+
+3. Copy the client UUID.
+
+```bash
+"id" : "f27a2087-137f-4af5-bc80-35f3bfba0784",
+  "clientId" : "LorvenAI-app-org387"
+This id is the client's UUID.
+```
+
+
+4. Delete the client.
+
+```bash
+./bin/kcadm.sh delete clients/UUID-OF-CLIENT -r yourrealm
+
+E.g: ./bin/kcadm.sh delete clients/f27a2087-137f-4af5-bc80-35f3bfba0784 -r LorvenAI-realm
+```
+
+5.    The client will be deleted.
